@@ -31,7 +31,7 @@ import type { Group } from "three";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import "./index.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://sharebite-production.up.railway.app";
 const api = axios.create({ baseURL: API_URL });
 const demoCredentials: Record<Role, { email: string; password: string; label: string }> = {
   donor: { email: "donor@sharebite.dev", password: "password123", label: "Donor login" },
