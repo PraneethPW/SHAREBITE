@@ -19,29 +19,16 @@ declare global {
 
 export function auth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
-
-  const token = header?.startsWith("Bearer ")
-    ? header.slice(7)
-    : undefined;
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
 
   if (!token) {
-    return res.status(401).json({
-      message: "Missing token",
-    });
+    return res.status(401).json({ message: "Missing token" });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "dev"
-    ) as AuthUser;
-
-    req.user = decoded;
-
+    req.user = jwt.verify(token, process.env.JWT_SECRET || "dev") as AuthUser;
     next();
-  } catch (error) {
-    return res.status(401).json({
-      message: "Invalid token",
-    });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
   }
 }
