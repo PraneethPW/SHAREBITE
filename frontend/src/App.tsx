@@ -283,17 +283,27 @@ function App() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function goToAuth(mode: "login" | "register", nextRole = role) {
+    switchAuthMode(mode, nextRole);
+    setTimeout(() => scrollToSection("auth"), 0);
+  }
+
   async function handleAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthError("");
     const form = new FormData(event.currentTarget);
-    const payload = {
-      name: String(form.get("name") || "").trim(),
-      email: String(form.get("email")).trim().toLowerCase(),
-      password: String(form.get("password")),
-      role,
-      location: String(form.get("location") || "Hyderabad").trim()
-    };
+    const email = String(form.get("email") || "").trim().toLowerCase();
+    const password = String(form.get("password") || "");
+    const payload =
+      authMode === "login"
+        ? { email, password }
+        : {
+            name: String(form.get("name") || "").trim(),
+            email,
+            password,
+            role,
+            location: String(form.get("location") || "").trim()
+          };
 
     try {
       const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
@@ -304,10 +314,15 @@ function App() {
       await refresh(data.token);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setAuthError(error.response?.data?.message || "Could not create the account. Check the details and try again.");
+        setAuthError(
+          error.response?.data?.message ||
+            (authMode === "login"
+              ? "Could not sign in. Check email and password."
+              : "Could not create the account. Fill every field (name and location need at least 2 characters).")
+        );
         return;
       }
-      setAuthError("Could not create the account. Check the details and try again.");
+      setAuthError(authMode === "login" ? "Could not sign in." : "Could not create the account.");
     }
   }
 
@@ -404,8 +419,8 @@ function App() {
           <div className="nav-actions">
             <a href="#product">Product</a>
             <a href="#proof">Proof</a>
-            <button className="ghost" onClick={() => switchAuthMode("login")}>Log in</button>
-            <button className="solid" onClick={() => switchAuthMode("register")}>Start Free <ArrowRight size={18} /></button>
+            <button className="ghost" onClick={() => goToAuth("login")}>Log in</button>
+            <button className="solid" onClick={() => goToAuth("register")}>Start Free <ArrowRight size={18} /></button>
           </div>
         </nav>
 
@@ -418,8 +433,8 @@ function App() {
               pickup cost prediction, freshness risk, and impact reporting for teams that move food at scale.
             </p>
             <div className="hero-actions">
-              <button className="solid large" onClick={() => switchAuthMode("register")}>Launch dashboard <ArrowRight size={20} /></button>
-              <button className="outline large" onClick={() => switchAuthMode("login")}>View demo</button>
+              <button className="solid large" onClick={() => goToAuth("login")}>Launch dashboard <ArrowRight size={20} /></button>
+              <button className="outline large" onClick={() => goToAuth("login")}>View demo</button>
             </div>
             <div className="hero-metrics">
               <Metric value="18.4k" label="meals routed" />
@@ -447,7 +462,7 @@ function App() {
           </div>
         </section>
 
-        <section className="auth-band">
+        <section className="auth-band" id="auth">
           <form className="auth-card" onSubmit={handleAuth} key={`${authMode}-${role}`}>
             <p className="form-kicker">{authMode === "login" ? selectedDemo.label : "Create workspace"}</p>
             <h2>{authMode === "login" ? `Open ${role === "donor" ? "Donor" : "Receiver"} Dashboard` : "Join FoodShare"}</h2>
@@ -463,10 +478,14 @@ function App() {
                 <small>Claim available food</small>
               </button>
             </div>
-            {authMode === "register" && <input name="name" placeholder="Full name / organization" required />}
+            {authMode === "register" && (
+              <input name="name" placeholder="Full name / organization" required minLength={2} maxLength={200} />
+            )}
             <input name="email" type="email" placeholder="Email address" defaultValue={authMode === "login" ? selectedDemo.email : ""} required />
             <input name="password" type="password" placeholder="Password" defaultValue={authMode === "login" ? selectedDemo.password : ""} minLength={6} required />
-            {authMode === "register" && <input name="location" placeholder="Primary location / neighborhood" required />}
+            {authMode === "register" && (
+              <input name="location" placeholder="Primary location / neighborhood" required minLength={2} maxLength={200} />
+            )}
             {authError && <div className="auth-error">{authError}</div>}
             <button className="solid full">{authMode === "login" ? `Log in as ${role}` : `Create ${role} account`}</button>
             <button className="link" type="button" onClick={() => switchAuthMode(authMode === "login" ? "register" : "login")}>

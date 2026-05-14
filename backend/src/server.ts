@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { auth } from "./middleware/auth";
 import { createAiPlan } from "./services/ai";
 import { pool, query } from "./db/pool";
@@ -215,6 +215,13 @@ app.get("/analytics/overview", auth, async (_req, res) => {
 });
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error instanceof ZodError) {
+    const first = error.issues[0];
+    const message = first
+      ? [first.path?.filter(Boolean).join("."), first.message].filter(Boolean).join(": ")
+      : "Invalid request";
+    return res.status(400).json({ message });
+  }
   const message = error instanceof Error ? error.message : "Server error";
   res.status(400).json({ message });
 });
