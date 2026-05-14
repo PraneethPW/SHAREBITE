@@ -654,7 +654,7 @@ function App() {
         </nav>
 
         <section className="hero-section">
-          <div className="lp-hero-grid" style={{ padding: "52px 6vw 72px" }}>
+          <div className="lp-hero-grid">
             <div className="lp-hero-copy">
               <div className="hero-copy">
                 <p className="eyebrow"><Cpu size={16} /> Neural logistics for surplus food</p>
