@@ -9,7 +9,18 @@ import { createAiPlan } from "./services/ai";
 import { pool, query } from "./db/pool";
 
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_URL || "https://sharebite.vercel.app" }));
+
+const clientOrigins = (() => {
+  const fromEnv = (process.env.CLIENT_URLS || "http://localhost:5173,https://sharebite.vercel.app")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const single = process.env.CLIENT_URL?.trim();
+  if (single && !fromEnv.includes(single)) fromEnv.push(single);
+  return fromEnv;
+})();
+
+app.use(cors({ origin: clientOrigins }));
 app.use(express.json());
 
 const sign = (user: any) =>

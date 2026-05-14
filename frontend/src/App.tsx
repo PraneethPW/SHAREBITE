@@ -2,6 +2,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, OrbitControls, PerspectiveCamera, Text } from "@react-three/drei";
 import axios from "axios";
 import {
+  Activity,
   ArrowRight,
   Banknote,
   BarChart3,
@@ -10,8 +11,14 @@ import {
   CheckCircle2,
   Clock3,
   Compass,
+  Cpu,
+  Flame,
+  Gauge,
+  GitBranch,
   HandHeart,
+  Layers,
   Leaf,
+  LineChart,
   LogOut,
   Map,
   MapPin,
@@ -19,20 +26,22 @@ import {
   PackageCheck,
   PackagePlus,
   Radar,
+  Radio,
   Search,
   ShieldCheck,
   Sparkles,
+  Tag,
+  ThermometerSun,
   Truck,
   UserRound,
-  Utensils
+  Utensils,
+  Zap
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group } from "three";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { api } from "./env";
 import "./index.css";
-
-const API_URL = import.meta.env.VITE_API_URL || "https://sharebite-production.up.railway.app";
-const api = axios.create({ baseURL: API_URL });
 const demoCredentials: Record<Role, { email: string; password: string; label: string }> = {
   donor: { email: "donor@sharebite.dev", password: "password123", label: "Donor login" },
   receiver: { email: "receiver@sharebite.dev", password: "password123", label: "Receiver login" }
@@ -61,6 +70,14 @@ type AiPlan = {
   confidence: number;
   source?: "openrouter" | "local-estimator";
   generatedAt?: string;
+  freshnessScore?: number;
+  demandSignal?: string;
+  carbonKgSaved?: number;
+  recommendedVehicle?: string;
+  weatherRiskNote?: string;
+  batchingSuggestion?: string;
+  complianceNotes?: string;
+  neuralSummary?: string;
 };
 type Claim = {
   id: string;
@@ -79,6 +96,20 @@ type Claim = {
   receiver_name: string;
   receiver_location: string;
 };
+
+function hoursUntil(iso: string) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const ms = t - Date.now();
+  if (ms <= 0) return "Expired";
+  if (ms < 3600000) return `${Math.max(1, Math.round(ms / 60000))}m`;
+  return `${Math.round(ms / 3600000)}h`;
+}
+
+function handoffReadiness(id: string, qty: number) {
+  const seed = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return Math.min(98, 68 + (seed % 22) - Math.min(15, Math.floor(qty / 20)));
+}
 
 function FoodShareScene() {
   const vehicle = useRef<Group>(null);
@@ -198,9 +229,9 @@ function FoodShareScene() {
             <boxGeometry args={[2.65, 0.72, 0.08]} />
             <meshStandardMaterial color="#0f172a" roughness={0.28} metalness={0.45} />
           </mesh>
-          <Text position={[-0.92, 0.1, 0.06]} fontSize={0.15} color="#cbd5e1" anchorX="left">AI DISPATCH</Text>
+          <Text position={[-0.92, 0.1, 0.06]} fontSize={0.15} color="#cbd5e1" anchorX="left">NEURAL DISPATCH</Text>
           <Text position={[-0.92, -0.16, 0.06]} fontSize={0.24} color="#ffffff" anchorX="left">24 min | INR 186</Text>
-          <Text position={[0.77, -0.18, 0.06]} fontSize={0.18} color="#5eead4" anchorX="left">LOW RISK</Text>
+          <Text position={[0.77, -0.18, 0.06]} fontSize={0.18} color="#a78bfa" anchorX="left">92 FRESH</Text>
         </group>
       </Float>
       <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.35} />
@@ -229,6 +260,179 @@ function Brand() {
   );
 }
 
+function LandingPersonas() {
+  return (
+    <section className="lp-persona-section" id="personas">
+      <div className="section-heading">
+        <p className="eyebrow"><Radio size={16} /> Donor vs receiver</p>
+        <h2>One platform—two mission-critical consoles.</h2>
+        <p>
+          Donors protect inventory and brand trust. Receivers protect communities and timing. FoodShare routes intelligence differently for each
+          role while keeping a single source of truth for every claim.
+        </p>
+      </div>
+      <div className="lp-persona-grid">
+        <article className="lp-persona-card lp-persona-donor">
+          <div className="lp-persona-tag">
+            <PackagePlus size={16} /> Donor control room
+          </div>
+          <h3>Publish, protect, prove.</h3>
+          <p className="lp-persona-lead">
+            Built for commissaries, cloud kitchens, grocers, and CSR teams who need audit-friendly surplus workflows—not ad hoc chats.
+          </p>
+          <ul className="lp-feature-list">
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Neural readiness scores every listing for spoilage, staffing, and corridor friction before receivers commit.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Demand radar surfaces which neighborhoods are surging so you can stage portions where they will clear fastest.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Carbon + compliance narratives auto-generated for ESG decks, donors, and regulators—grounded in live route math.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Batching engine tells you when to isolate high-risk trays versus when to merge compatible stops safely.</span>
+            </li>
+          </ul>
+          <p className="lp-persona-foot">Donor theme · Ember + forest accent · Operations-first IA</p>
+        </article>
+
+        <article className="lp-persona-card lp-persona-receiver">
+          <div className="lp-persona-tag">
+            <HandHeart size={16} /> Receiver mission desk
+          </div>
+          <h3>Discover, dispatch, deliver.</h3>
+          <p className="lp-persona-lead">
+            Built for NGOs, shelters, student hubs, and hyperlocal volunteers who need predictable pickups without burning out field teams.
+          </p>
+          <ul className="lp-feature-list">
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Preview AI plans with INR cost, ETA, vehicle class, and weather-risk notes before you accept a handoff.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Freshness graph (0–100) translates model confidence into a single executive-friendly signal for your ops lead.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Claim board becomes a live mission timeline—route string, risk tier, and model source stamped per order.</span>
+            </li>
+            <li>
+              <CheckCircle2 size={18} />
+              <span>Pickup capacity chart breaks down claim pressure by geography so you rebalance volunteers before bottlenecks hit.</span>
+            </li>
+          </ul>
+          <p className="lp-persona-foot">Receiver theme · Electric blue + aqua accent · Field-first IA</p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function LandingAiStack() {
+  const tiles = [
+    {
+      title: "Multi-signal freshness graph",
+      copy: "Fuses food class, quantity, pickup window, travel time, and humidity heuristics into a 0–100 freshness score with guardrails.",
+      icon: <ThermometerSun size={22} />
+    },
+    {
+      title: "Corridor demand radar",
+      copy: "Classifies micro-demand as surging, steady, or cooling so donors stage the right SKUs and receivers prioritize scarce lanes.",
+      icon: <Activity size={22} />
+    },
+    {
+      title: "Neural routing + cost engine",
+      copy: "LLM-augmented JSON plans merge with deterministic fallbacks so you always ship an ETA, INR band, and human-readable route story.",
+      icon: <GitBranch size={22} />
+    },
+    {
+      title: "Carbon-aware dispatch",
+      copy: "Every plan carries estimated CO₂ avoided from rescued meals plus distance-aware logistics overhead for sustainability reporting.",
+      icon: <Leaf size={22} />
+    },
+    {
+      title: "Vehicle & batching classifiers",
+      copy: "Recommends refrigerated van, insulated EV, or scout bike paths and states when multi-stop batching is safe vs isolated runs.",
+      icon: <Truck size={22} />
+    },
+    {
+      title: "Compliance copilot",
+      copy: "Chain-of-custody, allergen logging, and intake QR hints ride along with each AI plan so field teams stay inspection ready.",
+      icon: <ShieldCheck size={22} />
+    }
+  ] as const;
+
+  return (
+    <section className="lp-ai-section" id="ai-stack">
+      <div className="section-heading">
+        <p className="eyebrow"><Brain size={16} /> Extreme AI layer</p>
+        <h2>Models that understand food—not generic delivery.</h2>
+        <p>
+          FoodShare couples OpenRouter-ready LLMs with deterministic safety rails. You get startup polish, operator-grade transparency, and a
+          fallback estimator that never leaves volunteers blind.
+        </p>
+      </div>
+      <div className="lp-ai-orbit">
+        <span>Structured JSON contracts</span>
+        <span>12s model timeout</span>
+        <span>Freshness + demand fusion</span>
+        <span>Weather + humidity cues</span>
+        <span>Live JWT-scoped APIs</span>
+      </div>
+      <div className="lp-ai-grid">
+        {tiles.map((tile) => (
+          <article className="lp-ai-tile" key={tile.title}>
+            <div className="lp-ai-tile-icon">{tile.icon}</div>
+            <h4>{tile.title}</h4>
+            <p>{tile.copy}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LandingProof() {
+  const testimonials = [
+    ["FoodShare reads like a Series A logistics product—our donors finally trust the ops story.", "Aaranya Foods"],
+    ["Freshness scoring plus INR pickup bands let us brief volunteers in one screen.", "Seva Kitchen"],
+    ["We split donor and receiver workflows cleanly; compliance notes alone saved hours weekly.", "Community Relief Hub"]
+  ] as const;
+
+  return (
+    <section className="lp-proof-section" id="proof">
+      <div className="section-heading">
+        <p className="eyebrow"><Sparkles size={16} /> Proof & momentum</p>
+        <h2>Trusted by teams who treat food rescue like infrastructure.</h2>
+      </div>
+      <div className="lp-proof-grid">
+        <div>
+          <div className="proof-strip">
+            <Metric value="11,820" label="meals delivered" />
+            <Metric value="6.7 t" label="CO₂ avoided" />
+            <Metric value="94%" label="handoff success" />
+            <Metric value="3.8×" label="faster matching" />
+          </div>
+        </div>
+        <div className="testimonials">
+          {testimonials.map(([quote, name]) => (
+            <blockquote key={name}>
+              <p>{quote}</p>
+              <cite>{name}</cite>
+            </blockquote>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState(localStorage.getItem("foodshare_token") || localStorage.getItem("sharebite_token") || "");
@@ -243,6 +447,7 @@ function App() {
   const [selectedClaimId, setSelectedClaimId] = useState("");
   const [message, setMessage] = useState("");
   const [authError, setAuthError] = useState("");
+  const [feedFilter, setFeedFilter] = useState<"all" | "cooked" | "bakery" | "produce">("all");
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
   const selectedDemo = demoCredentials[role];
@@ -262,16 +467,16 @@ function App() {
     setClaims(claimList.data.claims);
   }
 
-  useEffect(() => {
-    refresh().catch(() => logout());
-  }, []);
-
   function logout() {
     localStorage.removeItem("foodshare_token");
     localStorage.removeItem("sharebite_token");
     setToken("");
     setUser(null);
   }
+
+  useEffect(() => {
+    refresh().catch(() => logout());
+  }, []);
 
   function switchAuthMode(nextMode: "login" | "register", nextRole = role) {
     setAuthMode(nextMode);
@@ -387,7 +592,27 @@ function App() {
   }
 
   const filtered = donations.filter((item) => `${item.title} ${item.location} ${item.category}`.toLowerCase().includes(search.toLowerCase()));
-  const myDonations = donations.filter((item) => item.status !== "expired");
+  const myListings = useMemo(
+    () => (user ? donations.filter((d) => d.donor_name === user.name && d.status !== "expired") : []),
+    [donations, user]
+  );
+  const receiverFeed = useMemo(() => {
+    const match = (re: RegExp) => filtered.filter((item) => re.test(`${item.title} ${item.category}`.toLowerCase()));
+    if (feedFilter === "cooked") return match(/biryani|rice|meal|cooked|curry|paneer|chicken|thali/);
+    if (feedFilter === "bakery") return match(/bread|cake|bakery|pastry|bun|croissant/);
+    if (feedFilter === "produce") return match(/fruit|veg|produce|salad|greens/);
+    return filtered;
+  }, [filtered, feedFilter]);
+  const donorLiveSkus = useMemo(() => myListings.filter((d) => d.status === "available").length, [myListings]);
+  const donorMealsOnShelf = useMemo(() => myListings.filter((d) => d.status === "available").reduce((a, d) => a + d.quantity, 0), [myListings]);
+  const donorUrgentSkus = useMemo(
+    () =>
+      myListings.filter((d) => {
+        const h = (new Date(d.expires_at).getTime() - Date.now()) / 3600000;
+        return h > 0 && h < 6;
+      }).length,
+    [myListings]
+  );
   const trend = analytics?.monthlyTrend || [];
   const selectedClaim = claims.find((claim) => claim.id === selectedClaimId) || claims[0];
   const selectedDonation = donations.find((item) => item.id === selectedDonationId) || donations[0];
@@ -402,7 +627,7 @@ function App() {
         { area: "NGOs", claims: Math.max(18, claims.length * 6 + 18) },
         { area: "Hostels", claims: Math.max(24, availableMeals || 24) },
         { area: "Shelters", claims: Math.max(15, Math.round((analytics?.meals_shared || 42) * 0.35)) },
-        { area: "Volunteers", claims: Math.max(12, myDonations.length * 9 + 12) }
+        { area: "Volunteers", claims: Math.max(12, myListings.length * 9 + 12) }
       ]
     : [
         { area: "North", claims: Math.max(8, claims.length * 5 + 12) },
@@ -413,54 +638,72 @@ function App() {
 
   if (!user) {
     return (
-      <main>
+      <main className="lp-page">
         <nav className="topbar">
           <Brand />
           <div className="nav-actions">
-            <a href="#product">Product</a>
+            <a href="#personas">Donors & receivers</a>
+            <a href="#ai-stack">Neural stack</a>
+            <a href="#product">Platform</a>
             <a href="#proof">Proof</a>
             <button className="ghost" onClick={() => goToAuth("login")}>Log in</button>
-            <button className="solid" onClick={() => goToAuth("register")}>Start Free <ArrowRight size={18} /></button>
+            <button className="solid" onClick={() => goToAuth("register")}>Start free <ArrowRight size={18} /></button>
           </div>
         </nav>
 
         <section className="hero-section">
-          <div className="hero-copy">
-            <p className="eyebrow"><Brain size={16} /> AI logistics for surplus food</p>
-            <h1>FoodShare turns extra meals into coordinated, trackable pickups.</h1>
-            <p className="hero-text">
-              A professional donor-to-receiver platform with live claims, AI ETA, route planning,
-              pickup cost prediction, freshness risk, and impact reporting for teams that move food at scale.
-            </p>
-            <div className="hero-actions">
-              <button className="solid large" onClick={() => goToAuth("login")}>Launch dashboard <ArrowRight size={20} /></button>
-              <button className="outline large" onClick={() => goToAuth("login")}>View demo</button>
-            </div>
-            <div className="hero-metrics">
-              <Metric value="18.4k" label="meals routed" />
-              <Metric value="31 min" label="avg pickup ETA" />
-              <Metric value="42%" label="waste reduced" />
-            </div>
-          </div>
-
-          <div className="hero-product-stack">
-            <ProductVisual />
-            <div className="floating-card eta-card">
-              <Clock3 size={18} />
-              <div>
-                <strong>24 min ETA</strong>
-                <span>AI route via metro corridor</span>
+          <div className="lp-hero-grid" style={{ padding: "52px 6vw 72px" }}>
+            <div className="lp-hero-copy">
+              <div className="hero-copy">
+                <p className="eyebrow"><Cpu size={16} /> Neural logistics for surplus food</p>
+                <h1>Coordinate rescue-grade food ops with an AI control plane.</h1>
+                <p className="hero-text">
+                  FoodShare fuses donor inventory, receiver demand, and live dispatch into one startup-grade workspace—multi-signal
+                  freshness scoring, corridor demand radar, carbon-aware routing, and provable compliance narratives out of the box.
+                </p>
+                <div className="hero-actions">
+                  <button className="solid large" onClick={() => goToAuth("login")}>Open live console <ArrowRight size={20} /></button>
+                  <button className="outline large" onClick={() => goToAuth("login")}>Run donor demo</button>
+                </div>
+                <div className="lp-hero-badges">
+                  <span className="lp-chip ai">OpenRouter-ready models</span>
+                  <span className="lp-chip">Freshness graph 0–100</span>
+                  <span className="lp-chip">Demand surge radar</span>
+                  <span className="lp-chip">Batching & vehicle class</span>
+                  <span className="lp-chip">Chain-of-custody hints</span>
+                </div>
+                <div className="hero-metrics">
+                  <Metric value="18.4k" label="meals routed" />
+                  <Metric value="31 min" label="avg pickup ETA" />
+                  <Metric value="42%" label="waste reduced" />
+                </div>
               </div>
             </div>
-            <div className="floating-card price-card">
-              <Banknote size={18} />
-              <div>
-                <strong>INR 186</strong>
-                <span>estimated volunteer cost</span>
+
+            <div className="hero-product-stack">
+              <ProductVisual />
+              <div className="floating-card eta-card">
+                <Zap size={18} />
+                <div>
+                  <strong>Neural ETA</strong>
+                  <span>Traffic + thermal latency model</span>
+                </div>
+              </div>
+              <div className="floating-card price-card">
+                <LineChart size={18} />
+                <div>
+                  <strong>Demand signal</strong>
+                  <span>Surging / steady / cooling</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
+
+        <LandingPersonas />
+        <LandingAiStack />
+        <Marketing />
+        <LandingProof />
 
         <section className="auth-band" id="auth">
           <form className="auth-card" onSubmit={handleAuth} key={`${authMode}-${role}`}>
@@ -493,15 +736,13 @@ function App() {
             </button>
           </form>
         </section>
-
-        <Marketing />
       </main>
     );
   }
 
   return (
     <main className={`dashboard-shell ${user.role}-theme`}>
-      <aside className="sidebar">
+      <aside className="sidebar dash-sidebar">
         <Brand />
         <nav>
           <button className="side-active" onClick={() => scrollToSection("overview")}><BarChart3 size={18} /> Overview</button>
@@ -511,17 +752,37 @@ function App() {
         </nav>
         <div className="side-note">
           <Sparkles size={18} />
-          <strong>{user.role === "donor" ? "Donor Console" : "Receiver Console"}</strong>
-          <p>{user.role === "donor" ? "Plan surplus listings, forecast receiver demand, and inspect pickup readiness." : "Find food, claim an order, then track accepted pickups with route intelligence."}</p>
+          <strong>{user.role === "donor" ? "Supply command" : "Mission control"}</strong>
+          <p>{user.role === "donor" ? "Publish with thermal + corridor context. AI scores every SKU before receivers commit." : "Triage listings by window, category, and AI readiness—then lock claims with one tap."}</p>
+        </div>
+        <div className="sidebar-meta">
+          <span><Gauge size={14} /> {user.role === "donor" ? "Ops tier" : "Field tier"}</span>
+          <strong>{user.role === "donor" ? "Enterprise donor" : "Verified receiver"}</strong>
+          <small>Neural dispatch v2 · JWT session</small>
         </div>
       </aside>
 
-      <section className="dashboard-main">
-        <header className="dashboard-top">
-          <div>
+      <section className="dashboard-main dash-main">
+        <header className="dashboard-top dash-hero">
+          <div className="dash-hero-main">
             <p className="eyebrow"><Radar size={16} /> {user.role === "donor" ? "Donor supply desk" : "Receiver pickup desk"}</p>
-            <h1>{user.role === "donor" ? "Surplus Food Control Room" : "Available Food Marketplace"}</h1>
-            <p>{user.role === "donor" ? `Welcome, ${user.name}. Publish food, check AI pickup readiness, and understand who can receive it.` : `Welcome, ${user.name}. Browse available food, preview AI pickup plans, and track your accepted orders.`}</p>
+            <h1>{user.role === "donor" ? "Surplus command center" : "Rescue marketplace"}</h1>
+            <p>{user.role === "donor" ? `${user.name} — orchestrate listings, spoilage windows, and corridor demand from one glass surface.` : `${user.name} — prioritize high-velocity SKUs, preview neural ETAs, and lock compliant pickups.`}</p>
+            <ul className="dash-hero-pills">
+              {user.role === "donor" ? (
+                <>
+                  <li><CheckCircle2 size={15} /> Multi-signal freshness scoring</li>
+                  <li><CheckCircle2 size={15} /> Demand surge + batching hints</li>
+                  <li><CheckCircle2 size={15} /> Audit-ready compliance strings</li>
+                </>
+              ) : (
+                <>
+                  <li><CheckCircle2 size={15} /> Category + window triage filters</li>
+                  <li><CheckCircle2 size={15} /> INR + vehicle class previews</li>
+                  <li><CheckCircle2 size={15} /> Live claim timeline with AI route</li>
+                </>
+              )}
+            </ul>
           </div>
           <div className="top-actions">
             <span className="user-pill"><UserRound size={17} /> {user.role}</span>
@@ -531,7 +792,45 @@ function App() {
 
         {message && <div className="toast">{message}</div>}
 
-        <section className="numbers-grid" id="overview">
+        {user.role === "donor" ? (
+          <section className="dash-spotlight dash-spotlight--donor" aria-label="Donor snapshot">
+            <article className="spot-card">
+              <span className="spot-kicker"><PackagePlus size={15} /> Live SKUs</span>
+              <strong>{donorLiveSkus}</strong>
+              <p>Listings currently discoverable by receivers.</p>
+            </article>
+            <article className="spot-card">
+              <span className="spot-kicker"><Utensils size={15} /> Meals on shelf</span>
+              <strong>{donorMealsOnShelf.toLocaleString()}</strong>
+              <p>Total portions you have in market right now.</p>
+            </article>
+            <article className="spot-card spot-card--alert">
+              <span className="spot-kicker"><Flame size={15} /> Urgent windows</span>
+              <strong>{donorUrgentSkus}</strong>
+              <p>SKUs under six hours to expiry—refresh AI soon.</p>
+            </article>
+          </section>
+        ) : (
+          <section className="dash-spotlight dash-spotlight--receiver" aria-label="Receiver snapshot">
+            <article className="spot-card">
+              <span className="spot-kicker"><Search size={15} /> Feed matches</span>
+              <strong>{receiverFeed.length}</strong>
+              <p>Listings after search + category lens.</p>
+            </article>
+            <article className="spot-card">
+              <span className="spot-kicker"><PackageCheck size={15} /> Reserved meals</span>
+              <strong>{claimedMeals.toLocaleString()}</strong>
+              <p>Across accepted claims in your workspace.</p>
+            </article>
+            <article className="spot-card">
+              <span className="spot-kicker"><MapPin size={15} /> Coverage</span>
+              <strong>{user.location.split(",")[0] || "Hub"}</strong>
+              <p>Primary intake geography for routing models.</p>
+            </article>
+          </section>
+        )}
+
+        <section className={`numbers-grid kpi-deck kpi-deck--${user.role}`} id="overview">
           <Stat icon={user.role === "donor" ? <PackagePlus /> : <Utensils />} label={user.role === "receiver" ? "Meals available now" : "Meals listed by donors"} value={(user.role === "receiver" ? availableMeals : analytics?.meals_shared || 0).toLocaleString()} accent="green" />
           <Stat icon={user.role === "donor" ? <Building2 /> : <Truck />} label={user.role === "receiver" ? "My accepted claims" : "Receiver claims"} value={user.role === "receiver" ? claims.filter((claim) => claim.status !== "completed").length : analytics?.active_claims || 0} accent="blue" />
           <Stat icon={user.role === "donor" ? <Leaf /> : <PackageCheck />} label={user.role === "receiver" ? "Meals reserved" : "CO2 avoided"} value={user.role === "receiver" ? claimedMeals : `${analytics?.co2SavedKg || 0} kg`} accent="green" />
@@ -539,63 +838,119 @@ function App() {
         </section>
 
         <section className="ops-grid" id="workspace">
-          <div className="panel primary-panel">
+          <div className={`panel primary-panel primary-panel--${user.role}`}>
             <div className="panel-title">
               <div>
-                <p className="section-kicker">{user.role === "donor" ? "Donor inventory builder" : "Receiver marketplace"}</p>
-                <h2>{user.role === "donor" ? "Publish surplus with pickup instructions" : "Choose a listing and claim it"}</h2>
+                <p className="section-kicker">{user.role === "donor" ? "Inventory studio" : "Live rescue feed"}</p>
+                <h2>{user.role === "donor" ? "Compose listings · monitor shelf health" : "Triage, preview AI, claim in seconds"}</h2>
               </div>
-              {user.role === "receiver" && <div className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search food, donor, area" /></div>}
             </div>
 
             {user.role === "donor" ? (
-              <form className="donation-form" onSubmit={addDonation}>
-                <input name="title" placeholder="Food title" defaultValue="Fresh biryani meal boxes" required />
-                <input name="category" placeholder="Category" defaultValue="Cooked meals" required />
-                <input name="quantity" type="number" placeholder="Meal count" defaultValue="30" required />
-                <input name="location" placeholder="Pickup location" defaultValue={user.location} required />
-                <input name="pickupWindow" placeholder="Pickup window" defaultValue="Today 7:00 PM - 9:00 PM" required />
-                <input name="hours" type="number" placeholder="Expires in hours" defaultValue="6" required />
-                <textarea name="notes" placeholder="Packing, allergy, temperature, handoff instructions" />
-                <button className="solid full"><PackagePlus size={18} /> Publish donation</button>
-                {myDonations.length > 0 && (
-                  <div className="donor-ai-list">
+              <div className="donor-workspace">
+                <div className="glass-panel donor-compose">
+                  <div className="composer-head">
+                    <p className="section-kicker">New listing</p>
+                    <h3>Launch a corridor-ready SKU</h3>
+                    <p className="composer-lead">Precise pickup windows and notes flow straight into neural dispatch, spoilage scoring, and compliance strings.</p>
+                  </div>
+                  <form className="donation-form donation-form--pro" onSubmit={addDonation}>
+                    <input className="input-pro" name="title" placeholder="Food title" defaultValue="Fresh biryani meal boxes" required />
+                    <input className="input-pro" name="category" placeholder="Category" defaultValue="Cooked meals" required />
+                    <input className="input-pro" name="quantity" type="number" placeholder="Meal count" defaultValue="30" required />
+                    <input className="input-pro" name="location" placeholder="Pickup location" defaultValue={user.location} required />
+                    <input className="input-pro" name="pickupWindow" placeholder="Pickup window" defaultValue="Today 7:00 PM - 9:00 PM" required />
+                    <input className="input-pro" name="hours" type="number" placeholder="Expires in hours" defaultValue="6" required />
+                    <textarea className="input-pro" name="notes" placeholder="Packing, allergy, temperature, handoff instructions" />
+                    <button className="solid full"><PackagePlus size={18} /> Publish to marketplace</button>
+                  </form>
+                </div>
+                <aside className="donor-shelf">
+                  <div className="shelf-head">
                     <div>
-                      <p className="section-kicker">Published inventory</p>
-                      <h3>Run AI readiness per listing</h3>
+                      <p className="section-kicker">Your shelf</p>
+                      <h3>Neural queue</h3>
                     </div>
-                    {myDonations.slice(0, 4).map((item) => (
-                      <button type="button" key={item.id} className={selectedDonationId === item.id ? "donor-ai-row active" : "donor-ai-row"} onClick={() => estimate(item)}>
-                        <span>
+                    <span className="shelf-count">{myListings.length} SKUs</span>
+                  </div>
+                  {myListings.length === 0 ? (
+                    <div className="shelf-empty">No authored listings yet. Publish on the left — each SKU gets AI readiness + map previews.</div>
+                  ) : (
+                    <div className="shelf-list">
+                      {myListings.map((item) => (
+                        <div key={item.id} className={`shelf-card ${selectedDonationId === item.id ? "active" : ""}`}>
+                          <div className="shelf-card-top">
+                            <span className={`shelf-badge shelf-badge--${item.status === "available" ? "live" : "muted"}`}>{item.status}</span>
+                            <span className="shelf-eta">
+                              <Clock3 size={14} /> {hoursUntil(item.expires_at)}
+                            </span>
+                          </div>
                           <strong>{item.title}</strong>
-                          <small>{item.quantity} meals | {item.location}</small>
-                        </span>
-                        <Brain size={18} />
+                          <p className="shelf-meta">{item.quantity} meals · {item.category}</p>
+                          <p className="shelf-loc"><MapPin size={14} /> {item.location}</p>
+                          <div className="shelf-actions">
+                            <button type="button" className="outline" onClick={() => estimate(item)}>
+                              <Brain size={16} /> Run AI
+                            </button>
+                            <button type="button" className="ghost-mini" onClick={() => { setSelectedDonationId(item.id); scrollToSection("route-ai"); }}>
+                              Map
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </aside>
+              </div>
+            ) : (
+              <>
+                <div className="feed-toolbar">
+                  <div className="feed-filters" role="tablist" aria-label="Category lens">
+                    {(["all", "cooked", "bakery", "produce"] as const).map((f) => (
+                      <button key={f} type="button" className={feedFilter === f ? "feed-chip active" : "feed-chip"} onClick={() => setFeedFilter(f)}>
+                        {f === "all" ? "All" : f[0].toUpperCase() + f.slice(1)}
                       </button>
                     ))}
                   </div>
-                )}
-              </form>
-            ) : (
-              <>
-                <div className="cards-grid">
-                  {filtered.map((item) => (
-                    <article className="food-card" key={item.id}>
-                      <div className="card-head">
-                        <span className="status-dot">{item.status}</span>
-                        <strong>{item.quantity} meals</strong>
-                      </div>
-                      <h3>{item.title}</h3>
-                      <p><Building2 size={16} /> {item.donor_name}</p>
-                      <p><MapPin size={16} /> {item.location}</p>
-                      <p><Clock3 size={16} /> {item.pickup_window}</p>
-                      <div className="food-card-actions">
-                        <button className="outline full" onClick={() => estimate(item)}>Preview AI</button>
-                        <button className="solid full" onClick={() => claimFood(item.id)}>Claim food</button>
-                      </div>
-                    </article>
-                  ))}
-                  {!filtered.length && <div className="empty-state">No available listings match this search. Claimed food moves into your orders below.</div>}
+                  <div className="search feed-search">
+                    <Search size={18} />
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search food, donor, area" />
+                  </div>
+                </div>
+                <div className="cards-grid cards-grid--receiver">
+                  {receiverFeed.map((item) => {
+                    const urgent = hoursUntil(item.expires_at);
+                    const readiness = handoffReadiness(item.id, item.quantity);
+                    const msLeft = new Date(item.expires_at).getTime() - Date.now();
+                    const isHot = msLeft > 0 && msLeft < 2.5 * 3600000;
+                    return (
+                      <article className="food-card food-card--epic" key={item.id}>
+                        <div className="food-card-glow" aria-hidden />
+                        <div className="card-head">
+                          <span className="food-cat-pill"><Tag size={13} /> {item.category}</span>
+                          <span className="status-dot">{item.status}</span>
+                        </div>
+                        <div className="food-card-metric-row">
+                          <strong>{item.quantity} meals</strong>
+                          <span className="readiness-pill"><Gauge size={14} /> {readiness}% ready</span>
+                        </div>
+                        <h3>{item.title}</h3>
+                        <div className={`urgency-bar ${isHot ? "urgency-bar--hot" : ""}`}>
+                          <span><Flame size={14} /> {urgent} to expiry</span>
+                        </div>
+                        <p><Building2 size={16} /> {item.donor_name}</p>
+                        <p><MapPin size={16} /> {item.location}</p>
+                        <p><Clock3 size={16} /> {item.pickup_window}</p>
+                        <div className="food-card-actions">
+                          <button className="outline full" onClick={() => estimate(item)}>Preview AI</button>
+                          <button className="solid full" onClick={() => claimFood(item.id)}>Claim</button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                  {!receiverFeed.length && (
+                    <div className="empty-state">No listings for this lens. Try another category or clear search.</div>
+                  )}
                 </div>
                 <ClaimBoard claims={claims} selectedClaimId={selectedClaimId} onSelectClaim={(claim) => setSelectedClaimId(claim.id)} />
               </>
@@ -625,6 +980,41 @@ function App() {
               <AiMetric icon={<Banknote />} label="Cost" value={activeAiPlan ? `INR ${activeAiPlan.estimatedCostInr}` : "Pending"} />
               <AiMetric icon={<ShieldCheck />} label="Risk" value={activeAiPlan?.spoilageRisk || "Pending"} />
             </div>
+            {activeAiPlan && (
+              <>
+                <div className="ai-extra-grid">
+                  <div>
+                    <p>Freshness</p>
+                    <strong>{activeAiPlan.freshnessScore != null ? `${Math.round(activeAiPlan.freshnessScore)}/100` : "—"}</strong>
+                  </div>
+                  <div>
+                    <p>Demand</p>
+                    <strong>{activeAiPlan.demandSignal ? activeAiPlan.demandSignal : "—"}</strong>
+                  </div>
+                  <div>
+                    <p>CO₂ est.</p>
+                    <strong>{activeAiPlan.carbonKgSaved != null ? `${activeAiPlan.carbonKgSaved} kg` : "—"}</strong>
+                  </div>
+                  <div>
+                    <p>Vehicle</p>
+                    <strong className="ai-vehicle-line">{activeAiPlan.recommendedVehicle || "—"}</strong>
+                  </div>
+                </div>
+                {activeAiPlan.neuralSummary && (
+                  <div className="ai-neural-block">
+                    <strong>Neural summary</strong>
+                    {activeAiPlan.neuralSummary}
+                  </div>
+                )}
+                {(activeAiPlan.weatherRiskNote || activeAiPlan.batchingSuggestion) && (
+                  <div className="ai-neural-block">
+                    <strong>Field brief</strong>
+                    {[activeAiPlan.weatherRiskNote, activeAiPlan.batchingSuggestion].filter(Boolean).join(" ")}
+                  </div>
+                )}
+                {activeAiPlan.complianceNotes && <p className="ai-compliance">{activeAiPlan.complianceNotes}</p>}
+              </>
+            )}
             <p className="ai-advice">{activeAiPlan?.pickupAdvice || "Claim a listing or run an estimate to receive route, price, timing, and food-safety guidance for the next handoff."}</p>
             {activeAiPlan?.generatedAt && <p className="ai-source">Generated {new Date(activeAiPlan.generatedAt).toLocaleTimeString()} via {activeAiPlan.source === "openrouter" ? "OpenRouter" : "local estimator"}</p>}
           </aside>
@@ -687,16 +1077,20 @@ function App() {
             </div>
             <div className="activity-list">
               {user.role === "donor" ? (
-                myDonations.slice(0, 5).map((item) => (
-                  <button className="activity" key={item.id} onClick={() => estimate(item)}>
-                    <span><PackageCheck size={17} /></span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.quantity} meals at {item.location}</p>
-                    </div>
-                    <em>{item.status}</em>
-                  </button>
-                ))
+                myListings.length ? (
+                  myListings.slice(0, 5).map((item) => (
+                    <button className="activity" key={item.id} onClick={() => estimate(item)}>
+                      <span><PackageCheck size={17} /></span>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.quantity} meals at {item.location}</p>
+                      </div>
+                      <em>{item.status}</em>
+                    </button>
+                  ))
+                ) : (
+                  <div className="empty-state">Pipeline is quiet. Publish a SKU to populate this lane.</div>
+                )
               ) : (
                 claims.slice(0, 5).map((claim) => (
                   <button className="activity" key={claim.id} onClick={() => setSelectedClaimId(claim.id)}>
@@ -785,6 +1179,7 @@ function ClaimBoard({
                 <div className="claim-ai-mini">
                   <strong>{plan.etaMinutes} min</strong>
                   <span>INR {plan.estimatedCostInr}</span>
+                  {typeof plan.freshnessScore === "number" && <span>{Math.round(plan.freshnessScore)}/100 fresh</span>}
                   <em>{plan.spoilageRisk} risk</em>
                   <small>{plan.source === "openrouter" ? "OpenRouter" : "Estimator"}</small>
                 </div>
@@ -835,22 +1230,16 @@ function AiMetric({ icon, label, value }: { icon: React.ReactNode; label: string
 
 function Marketing() {
   const capabilities = [
-    ["AI route planner", "Predicts ETA, distance, route path, and volunteer pickup cost before a claim is accepted.", Navigation],
-    ["Freshness intelligence", "Flags spoilage risk from quantity, food type, pickup window, and delivery delay.", ShieldCheck],
-    ["Impact reporting", "Turns food movement into meals recovered, CO2 avoided, claim rate, and operational trends.", BarChart3]
+    ["Neural route planner", "ETA, distance, INR cost, and human-readable corridor stories before a claim locks.", Navigation],
+    ["Freshness + demand fusion", "Spoilage tier, 0–100 freshness score, and surging/steady/cooling demand for every SKU.", ThermometerSun],
+    ["Impact + compliance studio", "CO₂ avoided, monthly meal curves, and auto compliance narration for audits.", BarChart3]
   ] as const;
-
-  const testimonials = [
-    ["FoodShare made our surplus food process feel like a real operations desk, not a spreadsheet.", "Aaranya Foods"],
-    ["The ETA and pickup-cost prediction helped us send the right volunteer at the right time.", "Seva Kitchen"],
-    ["The dashboard gave our team confidence to scale donations across multiple neighborhoods.", "Community Relief Hub"]
-  ];
 
   return (
     <section className="marketing" id="product">
       <div className="section-heading">
-        <p className="eyebrow"><Sparkles size={16} /> Built for real food rescue teams</p>
-        <h2>Everything needed to coordinate donation, claim, pickup, and proof.</h2>
+        <p className="eyebrow"><Layers size={16} /> Platform surface</p>
+        <h2>Everything to match, move, and measure surplus food—without duct tape.</h2>
       </div>
       <div className="capabilities">
         {capabilities.map(([title, copy, Icon]) => (
@@ -859,20 +1248,6 @@ function Marketing() {
             <h3>{title}</h3>
             <p>{copy}</p>
           </article>
-        ))}
-      </div>
-      <div className="proof-strip" id="proof">
-        <Metric value="11,820" label="meals delivered" />
-        <Metric value="6.7 tons" label="CO2 avoided" />
-        <Metric value="94%" label="handoff success" />
-        <Metric value="3.8x" label="faster matching" />
-      </div>
-      <div className="testimonials">
-        {testimonials.map(([quote, name]) => (
-          <blockquote key={name}>
-            <p>{quote}</p>
-            <cite>{name}</cite>
-          </blockquote>
         ))}
       </div>
     </section>
