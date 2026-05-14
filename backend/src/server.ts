@@ -23,53 +23,97 @@ const clientOrigins = (() => {
 app.use(cors({ origin: clientOrigins }));
 app.use(express.json());
 
-const sign = (user: any) =>
+const sign = (user: { id: unknown; name: string; email: string; role: string; location: string }) =>
   jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role, location: user.location },
+    { id: String(user.id), name: user.name, email: user.email, role: user.role, location: user.location },
     process.env.JWT_SECRET || "dev",
     { expiresIn: "7d" }
   );
 
-app.get("/health", (_req, res) => res.json({ ok: true, name: "FoodShare API" }));
-
-app.post("/auth/register", async (req, res) => {
-  const body = z
-    .object({
-      name: z.string().trim().min(2, "Enter your full name or organization name."),
-      email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-      password: z.string().min(6),
-      role: z.enum(["donor", "receiver"]),
-      location: z.string().trim().min(2, "Enter your pickup or delivery location.")
-    })
-    .parse(req.body);
-
-  const existing = await query<any>("SELECT id FROM users WHERE email=$1", [body.email]);
-  if (existing.rowCount) {
-    return res.status(409).json({ message: "That email is already registered. Log in or use another email." });
-  }
-
-  const passwordHash = await bcrypt.hash(body.password, 10);
-  const result = await query<any>(
-    `INSERT INTO users (name, email, password_hash, role, location)
-     VALUES ($1,$2,$3,$4,$5)
-     RETURNING id, name, email, role, location`,
-    [body.name, body.email, passwordHash, body.role, body.location]
-  );
-
-  res.status(201).json({ user: result.rows[0], token: sign(result.rows[0]) });
+const loginBody = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  password: z.string().min(1, "Password is required.")
 });
 
-app.post("/auth/login", async (req, res) => {
-  const body = z.object({ email: z.string().email(), password: z.string() }).parse(req.body);
-  const result = await query<any>("SELECT * FROM users WHERE email=$1", [body.email]);
-  const user = result.rows[0];
+const registerBody = z.object({
+  name: z.string().trim().min(2, "Enter your full name or organization name."),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  password: z.string().min(6),
+  role: z.enum(["donor", "receiver"]),
+  location: z.string().trim().min(2, "Enter your pickup or delivery location.")
+});
 
-  if (!user || !(await bcrypt.compare(body.password, user.password_hash))) {
-    return res.status(401).json({ message: "Invalid credentials" });
+function formatZodIssues(err: ZodError) {
+  return err.issues.map((i) => `${(i.path && i.path.length ? i.path.join(".") : "body")}: ${i.message}`).join("; ");
+}
+
+function looksLikeDbFailure(err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /relation|does not exist|ECONNREFUSED|ENOTFOUND|password authentication|timeout|pg_hba|SSL required|database/i.test(msg);
+}
+
+app.get("/health", (_req, res) => res.json({ ok: true, name: "FoodShare API" }));
+
+app.post("/auth/register", async (req, res, next) => {
+  try {
+    const parsed = registerBody.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: formatZodIssues(parsed.error),
+        hint: 'Send JSON with Content-Type: application/json, e.g. { "name","email","password","role","location" }.'
+      });
+    }
+    const body = parsed.data;
+
+    const existing = await query<any>("SELECT id FROM users WHERE lower(trim(email)) = $1", [body.email]);
+    if (existing.rowCount) {
+      return res.status(409).json({ message: "That email is already registered. Log in or use another email." });
+    }
+
+    const passwordHash = await bcrypt.hash(body.password, 10);
+    const result = await query<any>(
+      `INSERT INTO users (name, email, password_hash, role, location)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING id, name, email, role, location`,
+      [body.name, body.email, passwordHash, body.role, body.location]
+    );
+
+    const row = result.rows[0];
+    res.status(201).json({ user: { ...row, id: String(row.id) }, token: sign(row) });
+  } catch (err) {
+    next(err);
   }
+});
 
-  const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role, location: user.location };
-  res.json({ user: safeUser, token: sign(safeUser) });
+app.post("/auth/login", async (req, res, next) => {
+  try {
+    const parsed = loginBody.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: formatZodIssues(parsed.error),
+        hint: 'Send JSON: { "email": "you@example.com", "password": "…" } with header Content-Type: application/json.'
+      });
+    }
+    const { email, password } = parsed.data;
+
+    const result = await query<any>("SELECT * FROM users WHERE lower(trim(email)) = $1", [email]);
+    const user = result.rows[0];
+
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const safeUser = {
+      id: String(user.id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      location: user.location
+    };
+    res.json({ user: safeUser, token: sign(safeUser) });
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.get("/me", auth, (req, res) => res.json({ user: req.user }));
@@ -227,14 +271,18 @@ app.get("/analytics/overview", auth, async (_req, res) => {
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof ZodError) {
-    const first = error.issues[0];
-    const message = first
-      ? [first.path?.filter(Boolean).join("."), first.message].filter(Boolean).join(": ")
-      : "Invalid request";
-    return res.status(400).json({ message });
+    return res.status(400).json({ message: formatZodIssues(error) });
+  }
+  if (looksLikeDbFailure(error)) {
+    console.error("Database error:", error);
+    return res.status(503).json({
+      message:
+        "Database unavailable or schema missing. On Railway set DATABASE_URL, then run `npm run db:setup` from the backend folder against that database."
+    });
   }
   const message = error instanceof Error ? error.message : "Server error";
-  res.status(400).json({ message });
+  console.error("Unhandled error:", error);
+  res.status(500).json({ message });
 });
 
 const port = Number(process.env.PORT || 5000);

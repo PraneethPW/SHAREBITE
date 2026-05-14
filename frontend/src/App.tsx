@@ -512,7 +512,9 @@ function App() {
 
     try {
       const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
-      const { data } = await api.post(endpoint, payload);
+      const { data } = await api.post(endpoint, payload, {
+        headers: { "Content-Type": "application/json" }
+      });
       localStorage.setItem("foodshare_token", data.token);
       setToken(data.token);
       setUser(data.user);
@@ -520,7 +522,7 @@ function App() {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setAuthError(
-          error.response?.data?.message ||
+          [error.response?.data?.message, error.response?.data?.hint].filter(Boolean).join(" ") ||
             (authMode === "login"
               ? "Could not sign in. Check email and password."
               : "Could not create the account. Fill every field (name and location need at least 2 characters).")
