@@ -36,11 +36,13 @@ async function setup() {
       donation_id UUID NOT NULL REFERENCES donations(id) ON DELETE CASCADE,
       receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
+      approval_code TEXT,
       ai_plan JSONB,
       created_at TIMESTAMPTZ DEFAULT now()
     );
 
     ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
+    ALTER TABLE claims ADD COLUMN IF NOT EXISTS approval_code TEXT;
     ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
     ALTER TABLE claims ADD CONSTRAINT claims_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'completed'));
   `);

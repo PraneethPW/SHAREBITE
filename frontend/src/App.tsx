@@ -252,6 +252,25 @@ function ShareBiteApp() {
     }
   }
 
+  async function verifyClaimCode(id: string, code: string) {
+    try {
+      const { data } = await api.post(`/claims/${id}/verify-code`, { code }, { headers: authHeaders });
+      setNotice({
+        tone: "success",
+        title: "Food successfully claimed",
+        body: data.message || "The pickup code was verified and the claim is now complete."
+      });
+      setSelectedClaimId(id);
+      await refresh();
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        title: "Code was not accepted",
+        body: axios.isAxiosError(error) ? error.response?.data?.message || "Check the 6 digit code and try again." : "Check the 6 digit code and try again."
+      });
+    }
+  }
+
   async function estimate(target?: Donation | Claim) {
     const sample = target || donations.find((item) => item.id === selectedDonationId) || donations[0] || claims[0];
     if ("donation_id" in (sample || {})) {
@@ -354,6 +373,7 @@ function ShareBiteApp() {
         onEstimate={estimate}
         onClaimFood={claimFood}
         onReviewClaim={reviewClaim}
+        onVerifyClaimCode={verifyClaimCode}
         selectedClaimId={selectedClaimId}
         setSelectedClaimId={setSelectedClaimId}
         activeAiPlan={activeAiPlan}

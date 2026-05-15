@@ -58,6 +58,7 @@ export type Claim = {
   pickup_window: string;
   expires_at: string;
   donation_status: string;
+  approval_code?: string;
   donor_name: string;
   receiver_name: string;
   receiver_location: string;

@@ -66,6 +66,7 @@ export type DashboardPageProps = {
   onEstimate: (target?: Donation | Claim) => void;
   onClaimFood: (id: string) => void;
   onReviewClaim: (id: string, decision: "approve" | "reject") => void;
+  onVerifyClaimCode: (id: string, code: string) => void;
   selectedClaimId: string;
   setSelectedClaimId: (id: string) => void;
   activeAiPlan: AiPlan | null;
@@ -104,6 +105,7 @@ export function DashboardPage(p: DashboardPageProps) {
     onEstimate,
     onClaimFood,
     onReviewClaim,
+    onVerifyClaimCode,
     selectedClaimId,
     setSelectedClaimId,
     activeAiPlan,
@@ -610,7 +612,12 @@ export function DashboardPage(p: DashboardPageProps) {
                     </div>
                   )}
                 </div>
-                <ClaimBoard claims={claims} selectedClaimId={selectedClaimId} onSelectClaim={(claim) => setSelectedClaimId(claim.id)} />
+                <ClaimBoard
+                  claims={claims}
+                  selectedClaimId={selectedClaimId}
+                  onSelectClaim={(claim) => setSelectedClaimId(claim.id)}
+                  onVerifyCode={onVerifyClaimCode}
+                />
               </>
             )}
           </div>

@@ -12,11 +12,13 @@ const claimTone = {
 export function ClaimBoard({
   claims,
   selectedClaimId,
-  onSelectClaim
+  onSelectClaim,
+  onVerifyCode
 }: {
   claims: Claim[];
   selectedClaimId: string;
   onSelectClaim: (claim: Claim) => void;
+  onVerifyCode: (id: string, code: string) => void;
 }) {
   if (!claims.length) {
     return (
@@ -80,9 +82,35 @@ export function ClaimBoard({
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 <span className={cn("rounded-full px-2.5 py-1", claimTone[claim.status])}>{claim.status}</span>
                 <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">AI route ready</span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">{claim.status === "approved" ? "Pickup approved" : "Waiting for donor"}</span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1">
+                  {claim.status === "completed" ? "Code verified" : claim.status === "approved" ? "Enter pickup code" : "Waiting for donor"}
+                </span>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">Delivery proof</span>
               </div>
+              {claim.status === "approved" && (
+                <form
+                  className="mt-4 flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 sm:flex-row"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    onVerifyCode(claim.id, String(form.get("code") || ""));
+                  }}
+                >
+                  <input
+                    name="code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    minLength={6}
+                    pattern="\d{6}"
+                    placeholder="Enter 6 digit pickup code"
+                    required
+                    className="min-h-11 flex-1 rounded-xl border border-emerald-200 bg-white px-3 text-sm font-bold tracking-widest text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
+                  />
+                  <button type="submit" className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white transition hover:bg-emerald-700">
+                    Verify code
+                  </button>
+                </form>
+              )}
               <p className="mt-3 flex min-w-0 items-start gap-2 break-words text-sm font-semibold text-slate-700">
                 <Navigation className="mt-0.5 size-4 shrink-0 text-brand-600" /> {plan.bestRoute}
               </p>

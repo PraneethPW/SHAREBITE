@@ -26,9 +26,14 @@ app.use(express.json());
 async function ensureRuntimeSchema() {
   await query(`
     ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
+    ALTER TABLE claims ADD COLUMN IF NOT EXISTS approval_code TEXT;
     ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
     ALTER TABLE claims ADD CONSTRAINT claims_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'completed'));
   `);
+}
+
+function createApprovalCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 const sign = (user: { id: unknown; name: string; email: string; role: string; location: string }) =>
@@ -132,8 +137,8 @@ app.get("/donations", auth, async (req, res) => {
     scope === "my"
       ? "d.donor_id=$1"
       : scope === "available"
-        ? "d.status='available'"
-        : "d.status='available' OR d.donor_id=$1";
+        ? "d.status='available' AND d.expires_at > now()"
+        : "(d.status='available' AND d.expires_at > now()) OR d.donor_id=$1";
   const params = scope === "available" ? [] : [req.user!.id];
   const result = await query<any>(
     `SELECT d.*, u.name AS donor_name
@@ -285,11 +290,19 @@ app.post("/claims/:id/approve", auth, async (req, res) => {
       return res.status(409).json({ message: "This food is no longer available for approval." });
     }
 
+    const approvalCode = createApprovalCode();
     await client.query("UPDATE donations SET status='claimed' WHERE id=$1", [claim.donation_id]);
-    const approved = await client.query<any>("UPDATE claims SET status='approved' WHERE id=$1 RETURNING *", [claim.id]);
+    const approved = await client.query<any>("UPDATE claims SET status='approved', approval_code=$2 WHERE id=$1 RETURNING *", [
+      claim.id,
+      approvalCode
+    ]);
     await client.query("UPDATE claims SET status='rejected' WHERE donation_id=$1 AND id<>$2 AND status='pending'", [claim.donation_id, claim.id]);
     await client.query("COMMIT");
-    res.json({ claim: approved.rows[0], message: "Receiver claim approved." });
+    res.json({
+      claim: approved.rows[0],
+      approvalCode,
+      message: `Receiver claim approved. Share pickup code ${approvalCode} with the receiver.`
+    });
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -310,6 +323,25 @@ app.post("/claims/:id/reject", auth, async (req, res) => {
   );
   if (!result.rowCount) return res.status(404).json({ message: "Pending claim request not found" });
   res.json({ claim: result.rows[0], message: "Receiver claim rejected." });
+});
+
+app.post("/claims/:id/verify-code", auth, async (req, res) => {
+  if (req.user!.role !== "receiver") return res.status(403).json({ message: "Only receivers can verify pickup codes" });
+  const body = z.object({ code: z.string().trim().regex(/^\d{6}$/, "Enter the 6 digit pickup code.") }).parse(req.body);
+
+  const result = await query<any>(
+    `UPDATE claims
+     SET status='completed'
+     WHERE id=$1 AND receiver_id=$2 AND status='approved' AND approval_code=$3
+     RETURNING *`,
+    [req.params.id, req.user!.id, body.code]
+  );
+
+  if (!result.rowCount) {
+    return res.status(400).json({ message: "Invalid code or this claim is not ready for code verification." });
+  }
+
+  res.json({ claim: result.rows[0], message: "Code verified. Food successfully claimed." });
 });
 
 app.post("/ai/estimate", auth, async (req, res) => {
