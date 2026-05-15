@@ -23,6 +23,14 @@ const clientOrigins = (() => {
 app.use(cors({ origin: clientOrigins }));
 app.use(express.json());
 
+async function ensureRuntimeSchema() {
+  await query(`
+    ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
+    ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
+    ALTER TABLE claims ADD CONSTRAINT claims_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'completed'));
+  `);
+}
+
 const sign = (user: { id: unknown; name: string; email: string; role: string; location: string }) =>
   jwt.sign(
     { id: String(user.id), name: user.name, email: user.email, role: user.role, location: user.location },
@@ -182,6 +190,7 @@ app.post("/donations", auth, async (req, res) => {
       category: z.string().min(2),
       quantity: z.number().int().positive(),
       location: z.string().min(2),
+      donorPhone: z.string().trim().min(7, "Enter a donor phone number for receiver coordination."),
       pickupWindow: z.string().min(2),
       expiresAt: z.string(),
       notes: z.string().optional()
@@ -189,10 +198,10 @@ app.post("/donations", auth, async (req, res) => {
     .parse(req.body);
 
   const result = await query<any>(
-    `INSERT INTO donations (donor_id, title, category, quantity, location, pickup_window, expires_at, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    `INSERT INTO donations (donor_id, title, category, quantity, location, donor_phone, pickup_window, expires_at, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      RETURNING *`,
-    [req.user!.id, body.title, body.category, body.quantity, body.location, body.pickupWindow, body.expiresAt, body.notes]
+    [req.user!.id, body.title, body.category, body.quantity, body.location, body.donorPhone, body.pickupWindow, body.expiresAt, body.notes]
   );
 
   res.status(201).json({ donation: result.rows[0] });
@@ -208,7 +217,15 @@ app.post("/donations/:id/claim", auth, async (req, res) => {
   const donation = donationResult.rows[0];
   if (!donation) return res.status(404).json({ message: "Donation not found" });
   if (donation.status !== "available") {
-    return res.status(409).json({ message: "This food was already claimed. Refresh the feed for available listings." });
+    return res.status(409).json({ message: "This food is no longer available. Refresh the feed for available listings." });
+  }
+
+  const existingClaim = await query<any>(
+    "SELECT id, status FROM claims WHERE donation_id=$1 AND receiver_id=$2 AND status IN ('pending','approved')",
+    [donation.id, req.user!.id]
+  );
+  if (existingClaim.rowCount) {
+    return res.status(409).json({ message: "You already have an active request for this food. Wait for donor approval." });
   }
 
   const aiPlan = await createAiPlan({
@@ -222,23 +239,77 @@ app.post("/donations/:id/claim", auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const update = await client.query("UPDATE donations SET status='claimed' WHERE id=$1 AND status='available'", [donation.id]);
-    if (!update.rowCount) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ message: "This food was already claimed. Refresh the feed for available listings." });
-    }
     const claim = await client.query<any>(
-      `INSERT INTO claims (donation_id, receiver_id, status, ai_plan) VALUES ($1,$2,'approved',$3) RETURNING *`,
+      `INSERT INTO claims (donation_id, receiver_id, status, ai_plan) VALUES ($1,$2,'pending',$3) RETURNING *`,
       [donation.id, req.user!.id, aiPlan]
     );
     await client.query("COMMIT");
-    res.status(201).json({ claim: claim.rows[0], aiPlan });
+    res.status(201).json({
+      claim: claim.rows[0],
+      aiPlan,
+      message: `Claim request sent to ${donation.donor_phone || "the donor"}. Waiting for donor approval.`
+    });
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
+});
+
+app.post("/claims/:id/approve", auth, async (req, res) => {
+  if (req.user!.role !== "donor") return res.status(403).json({ message: "Only donors can approve requests" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const claimResult = await client.query<any>(
+      `SELECT c.*, d.donor_id, d.status AS donation_status
+       FROM claims c
+       JOIN donations d ON d.id=c.donation_id
+       WHERE c.id=$1 AND d.donor_id=$2
+       FOR UPDATE`,
+      [req.params.id, req.user!.id]
+    );
+    const claim = claimResult.rows[0];
+    if (!claim) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Claim request not found" });
+    }
+    if (claim.status !== "pending") {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ message: "This request has already been handled." });
+    }
+    if (claim.donation_status !== "available") {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ message: "This food is no longer available for approval." });
+    }
+
+    await client.query("UPDATE donations SET status='claimed' WHERE id=$1", [claim.donation_id]);
+    const approved = await client.query<any>("UPDATE claims SET status='approved' WHERE id=$1 RETURNING *", [claim.id]);
+    await client.query("UPDATE claims SET status='rejected' WHERE donation_id=$1 AND id<>$2 AND status='pending'", [claim.donation_id, claim.id]);
+    await client.query("COMMIT");
+    res.json({ claim: approved.rows[0], message: "Receiver claim approved." });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+});
+
+app.post("/claims/:id/reject", auth, async (req, res) => {
+  if (req.user!.role !== "donor") return res.status(403).json({ message: "Only donors can reject requests" });
+  const result = await query<any>(
+    `UPDATE claims c
+     SET status='rejected'
+     FROM donations d
+     WHERE c.id=$1 AND c.donation_id=d.id AND d.donor_id=$2 AND c.status='pending'
+     RETURNING c.*`,
+    [req.params.id, req.user!.id]
+  );
+  if (!result.rowCount) return res.status(404).json({ message: "Pending claim request not found" });
+  res.json({ claim: result.rows[0], message: "Receiver claim rejected." });
 });
 
 app.post("/ai/estimate", auth, async (req, res) => {
@@ -298,4 +369,10 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 });
 
 const port = Number(process.env.PORT || 5000);
-app.listen(port, () => console.log(`FoodShare API running on http://localhost:${port}`));
+ensureRuntimeSchema()
+  .catch((error) => {
+    console.error("Runtime schema setup failed:", error);
+  })
+  .finally(() => {
+    app.listen(port, () => console.log(`FoodShare API running on http://localhost:${port}`));
+  });

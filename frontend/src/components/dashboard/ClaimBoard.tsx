@@ -2,6 +2,13 @@ import { Building2, CheckCircle2, MapPin, Navigation } from "lucide-react";
 import { cn } from "../../cn";
 import type { Claim } from "../../types/foodshare";
 
+const claimTone = {
+  pending: "bg-amber-50 text-amber-800",
+  approved: "bg-emerald-50 text-emerald-800",
+  rejected: "bg-red-50 text-red-800",
+  completed: "bg-slate-100 text-slate-700"
+} satisfies Record<Claim["status"], string>;
+
 export function ClaimBoard({
   claims,
   selectedClaimId,
@@ -16,9 +23,9 @@ export function ClaimBoard({
       <section className="mt-8 rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-12 text-center sm:px-10">
         <div className="mx-auto max-w-lg">
           <p className="text-xs font-black uppercase tracking-wider text-blue-600">My claims</p>
-          <h3 className="mt-2 text-xl font-extrabold text-slate-900 sm:text-2xl">No accepted claims yet</h3>
+          <h3 className="mt-2 text-xl font-extrabold text-slate-900 sm:text-2xl">No claim requests yet</h3>
           <span className="mt-3 block text-sm leading-relaxed text-slate-600">
-            Claim a listing above and FoodShare will create a live order with AI route, ETA, cost, and pickup guidance.
+            Request a listing above and FoodShare will create a pending order with AI route, ETA, cost, and pickup guidance.
           </span>
         </div>
       </section>
@@ -30,7 +37,7 @@ export function ClaimBoard({
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-wider text-blue-600">My claims</p>
-          <h3 className="text-xl font-extrabold text-slate-900 sm:text-2xl">Accepted food orders</h3>
+          <h3 className="text-xl font-extrabold text-slate-900 sm:text-2xl">Food claim requests</h3>
         </div>
         <span className="w-fit rounded-full bg-blue-600 px-3 py-1 text-xs font-black text-white">{claims.length} active</span>
       </div>
@@ -47,8 +54,8 @@ export function ClaimBoard({
               onClick={() => onSelectClaim(claim)}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black uppercase text-emerald-800">
-                  <CheckCircle2 className="size-4" /> Claim accepted
+                <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black uppercase", claimTone[claim.status])}>
+                  <CheckCircle2 className="size-4" /> Claim {claim.status}
                 </span>
                 <small className="font-mono text-xs text-slate-400">#{claim.id.slice(0, 8).toUpperCase()}</small>
               </div>
@@ -71,9 +78,9 @@ export function ClaimBoard({
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">Accepted</span>
+                <span className={cn("rounded-full px-2.5 py-1", claimTone[claim.status])}>{claim.status}</span>
                 <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">AI route ready</span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">Pickup pending</span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1">{claim.status === "approved" ? "Pickup approved" : "Waiting for donor"}</span>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">Delivery proof</span>
               </div>
               <p className="mt-3 flex min-w-0 items-start gap-2 break-words text-sm font-semibold text-slate-700">

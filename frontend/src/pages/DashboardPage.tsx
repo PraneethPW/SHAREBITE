@@ -63,6 +63,7 @@ export type DashboardPageProps = {
   setFeedFilter: (f: FeedFilter) => void;
   onEstimate: (target?: Donation | Claim) => void;
   onClaimFood: (id: string) => void;
+  onReviewClaim: (id: string, decision: "approve" | "reject") => void;
   selectedClaimId: string;
   setSelectedClaimId: (id: string) => void;
   activeAiPlan: AiPlan | null;
@@ -99,6 +100,7 @@ export function DashboardPage(p: DashboardPageProps) {
     setFeedFilter,
     onEstimate,
     onClaimFood,
+    onReviewClaim,
     selectedClaimId,
     setSelectedClaimId,
     activeAiPlan,
@@ -119,6 +121,7 @@ export function DashboardPage(p: DashboardPageProps) {
   const showWorkspace = view === "workspace";
   const showRouteAi = view === "route-ai" || view === "analytics";
   const showActivity = view === "activity" || view === "analytics";
+  const pendingDonorClaims = claims.filter((claim) => claim.status === "pending");
 
   return (
     <main
@@ -395,6 +398,15 @@ export function DashboardPage(p: DashboardPageProps) {
                     />
                     <input
                       className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+                      name="donorPhone"
+                      type="tel"
+                      placeholder="Donor phone number"
+                      defaultValue="+91 "
+                      minLength={7}
+                      required
+                    />
+                    <input
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
                       name="pickupWindow"
                       placeholder="Pickup window"
                       defaultValue="Today 7:00 PM - 9:00 PM"
@@ -576,7 +588,7 @@ export function DashboardPage(p: DashboardPageProps) {
                             className="flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-md shadow-blue-600/25 transition hover:brightness-110"
                             onClick={() => onClaimFood(item.id)}
                           >
-                            Claim
+                            Request approval
                           </button>
                         </div>
                       </article>
@@ -752,31 +764,68 @@ export function DashboardPage(p: DashboardPageProps) {
             </div>
             <div className="grid gap-3">
               {user.role === "donor" ? (
-                myListings.length ? (
-                  myListings.slice(0, 5).map((item) => (
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-left transition hover:border-brand-300 hover:bg-white"
-                      key={item.id}
-                      onClick={() => onEstimate(item)}
-                    >
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-brand-600 shadow-sm">
-                        <PackageCheck className="size-[17px]" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <strong className="block truncate text-slate-900">{item.title}</strong>
-                        <p className="text-sm leading-snug text-slate-600">
-                          <span className="break-words">{item.quantity} meals at {item.location}</span>
-                        </p>
-                      </div>
-                      <em className="shrink-0 font-black not-italic text-emerald-700">{item.status}</em>
-                    </button>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-semibold text-slate-600">
-                    Pipeline is quiet. Publish a SKU to populate this lane.
-                  </div>
-                )
+                <>
+                  {pendingDonorClaims.length > 0 && (
+                    <div className="grid gap-3">
+                      {pendingDonorClaims.map((claim) => (
+                        <article key={claim.id} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-200 px-2.5 py-1 text-[11px] font-black uppercase text-amber-950">
+                                Donor approval needed
+                              </span>
+                              <strong className="mt-2 block break-words text-slate-950">{claim.receiver_name} wants to claim {claim.title}</strong>
+                              <p className="mt-1 text-sm text-slate-700">
+                                {claim.quantity} meals | Pickup: {claim.location} | Receiver hub: {claim.receiver_location}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <button
+                                type="button"
+                                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700"
+                                onClick={() => onReviewClaim(claim.id, "approve")}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 shadow-sm transition hover:bg-red-50"
+                                onClick={() => onReviewClaim(claim.id, "reject")}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                  {myListings.length ? (
+                    myListings.slice(0, 5).map((item) => (
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-left transition hover:border-brand-300 hover:bg-white"
+                        key={item.id}
+                        onClick={() => onEstimate(item)}
+                      >
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-brand-600 shadow-sm">
+                          <PackageCheck className="size-[17px]" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <strong className="block truncate text-slate-900">{item.title}</strong>
+                          <p className="text-sm leading-snug text-slate-600">
+                            <span className="break-words">{item.quantity} meals at {item.location}</span>
+                          </p>
+                        </div>
+                        <em className="shrink-0 font-black not-italic text-emerald-700">{item.status}</em>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-semibold text-slate-600">
+                      Pipeline is quiet. Publish a SKU to populate this lane.
+                    </div>
+                  )}
+                </>
               ) : (
                 claims.slice(0, 5).map((claim) => (
                   <button
@@ -796,7 +845,14 @@ export function DashboardPage(p: DashboardPageProps) {
                         </span>
                       </p>
                     </div>
-                    <em className="shrink-0 font-black not-italic text-blue-700">{claim.status}</em>
+                    <em
+                      className={cn(
+                        "shrink-0 font-black not-italic",
+                        claim.status === "approved" ? "text-emerald-700" : claim.status === "rejected" ? "text-red-700" : "text-amber-700"
+                      )}
+                    >
+                      {claim.status}
+                    </em>
                   </button>
                 ))
               )}

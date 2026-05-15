@@ -11,6 +11,7 @@ export type Donation = {
   category: string;
   quantity: number;
   location: string;
+  donor_phone?: string;
   pickup_window: string;
   expires_at: string;
   status: string;
@@ -46,7 +47,7 @@ export type AnalyticsOverview = {
 
 export type Claim = {
   id: string;
-  status: "pending" | "approved" | "completed";
+  status: "pending" | "approved" | "rejected" | "completed";
   ai_plan: AiPlan;
   created_at: string;
   donation_id: string;

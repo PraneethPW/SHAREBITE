@@ -159,6 +159,7 @@ function ShareBiteApp() {
           category: String(form.get("category")),
           quantity: Number(form.get("quantity")),
           location: String(form.get("location")),
+          donorPhone: String(form.get("donorPhone")),
           pickupWindow: String(form.get("pickupWindow")),
           expiresAt,
           notes: String(form.get("notes"))
@@ -190,8 +191,10 @@ function ShareBiteApp() {
       setAiPlan(data.aiPlan);
       setNotice({
         tone: "success",
-        title: "Food claimed successfully",
-        body: `Your pickup is confirmed. AI dispatch generated a ${data.aiPlan.etaMinutes} min ETA and INR ${data.aiPlan.estimatedCostInr} pickup cost.`
+        title: "Claim request sent",
+        body:
+          data.message ||
+          `The donor has been asked to approve this pickup. AI dispatch generated a ${data.aiPlan.etaMinutes} min ETA and INR ${data.aiPlan.estimatedCostInr} pickup cost.`
       });
       await refresh();
     } catch (error) {
@@ -207,6 +210,28 @@ function ShareBiteApp() {
         tone: "error",
         title: "Food was not claimed",
         body: "Could not claim this listing. Please refresh and try again."
+      });
+    }
+  }
+
+  async function reviewClaim(id: string, decision: "approve" | "reject") {
+    try {
+      const { data } = await api.post(`/claims/${id}/${decision}`, {}, { headers: authHeaders });
+      setNotice({
+        tone: "success",
+        title: decision === "approve" ? "Claim approved" : "Claim rejected",
+        body:
+          data.message ||
+          (decision === "approve"
+            ? "The receiver can now see that their pickup was approved."
+            : "The receiver can now see that their pickup was rejected.")
+      });
+      await refresh();
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        title: "Request was not updated",
+        body: axios.isAxiosError(error) ? error.response?.data?.message || "Please refresh and try again." : "Please refresh and try again."
       });
     }
   }
@@ -311,6 +336,7 @@ function ShareBiteApp() {
         setFeedFilter={setFeedFilter}
         onEstimate={estimate}
         onClaimFood={claimFood}
+        onReviewClaim={reviewClaim}
         selectedClaimId={selectedClaimId}
         setSelectedClaimId={setSelectedClaimId}
         activeAiPlan={activeAiPlan}

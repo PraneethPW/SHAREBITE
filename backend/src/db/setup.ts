@@ -23,6 +23,7 @@ async function setup() {
       category TEXT NOT NULL,
       quantity INTEGER NOT NULL,
       location TEXT NOT NULL,
+      donor_phone TEXT,
       pickup_window TEXT NOT NULL,
       expires_at TIMESTAMPTZ NOT NULL,
       status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'claimed', 'picked_up', 'expired')),
@@ -34,10 +35,14 @@ async function setup() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       donation_id UUID NOT NULL REFERENCES donations(id) ON DELETE CASCADE,
       receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'completed')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
       ai_plan JSONB,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+
+    ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
+    ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
+    ALTER TABLE claims ADD CONSTRAINT claims_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'completed'));
   `);
 
   const donorPassword = await bcrypt.hash("password123", 10);
@@ -53,8 +58,8 @@ async function setup() {
   );
 
   await query(`
-    INSERT INTO donations (donor_id, title, category, quantity, location, pickup_window, expires_at, notes)
-    SELECT id, 'Fresh biryani meal boxes', 'Cooked meals', 42, 'Kukatpally, Hyderabad', 'Today 7:00 PM - 9:00 PM', now() + interval '6 hours', 'Packed and ready for NGO pickup.'
+    INSERT INTO donations (donor_id, title, category, quantity, location, donor_phone, pickup_window, expires_at, notes)
+    SELECT id, 'Fresh biryani meal boxes', 'Cooked meals', 42, 'Kukatpally, Hyderabad', '+91 90000 00000', 'Today 7:00 PM - 9:00 PM', now() + interval '6 hours', 'Packed and ready for NGO pickup.'
     FROM users WHERE email='donor@sharebite.dev'
     ON CONFLICT DO NOTHING
   `);
