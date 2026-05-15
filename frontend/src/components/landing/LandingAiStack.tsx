@@ -59,7 +59,7 @@ export function LandingAiStack() {
         {tiles.map((tile) => (
           <article
             key={tile.title}
-            className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-800/90 to-slate-950/95 p-5 shadow-2xl shadow-black/40 sm:p-6"
+            className="min-w-0 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-800/90 to-slate-950/95 p-5 shadow-2xl shadow-black/40 sm:p-6"
           >
             <div className="mb-4 grid size-12 place-items-center rounded-xl bg-gradient-to-br from-violet-500/40 to-teal-500/25 text-violet-100">
               {tile.icon}

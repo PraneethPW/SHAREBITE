@@ -105,7 +105,7 @@ export function DashboardPage(p: DashboardPageProps) {
   return (
     <main
       className={cn(
-        "grid min-h-screen w-full max-w-[100vw] overflow-x-clip font-sans lg:grid-cols-[minmax(0,280px)_1fr]",
+        "grid min-h-dvh min-w-0 w-full max-w-[100dvw] overflow-x-clip font-sans lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]",
         user.role === "donor"
           ? "bg-gradient-to-br from-amber-50/90 via-stone-50 to-emerald-50/35"
           : "bg-gradient-to-br from-sky-50/90 via-slate-50 to-teal-50/30"
@@ -113,14 +113,14 @@ export function DashboardPage(p: DashboardPageProps) {
     >
       <aside
         className={cn(
-          "flex flex-col gap-5 border-b px-4 py-5 sm:px-5 lg:sticky lg:top-0 lg:h-svh lg:min-h-0 lg:border-b-0 lg:border-r lg:py-6",
+          "flex min-h-0 min-w-0 flex-col gap-5 border-b px-4 py-5 sm:px-5 lg:sticky lg:top-0 lg:h-svh lg:min-h-0 lg:border-b-0 lg:border-r lg:py-6",
           user.role === "donor"
             ? "border-amber-900/25 bg-gradient-to-b from-stone-950 via-stone-900 to-amber-950 text-slate-100"
             : "border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 text-slate-100"
         )}
       >
         <Brand variant={user.role} />
-        <nav className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+        <nav className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             className="flex shrink-0 items-center gap-2.5 rounded-xl bg-white/10 px-3.5 py-3 text-left text-sm font-bold text-white ring-1 ring-white/10 sm:min-w-[140px] lg:w-full lg:min-w-0"
@@ -170,7 +170,7 @@ export function DashboardPage(p: DashboardPageProps) {
         </div>
       </aside>
 
-      <section className="min-w-0 px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-6 lg:px-8 lg:py-8">
+      <section className="min-h-0 min-w-0 px-3 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-5 rounded-3xl border border-slate-200/80 bg-white/90 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-md sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
           <div className="min-w-0 max-w-3xl flex-1">
             <p
@@ -183,7 +183,7 @@ export function DashboardPage(p: DashboardPageProps) {
             >
               <Radar className="size-4" /> {user.role === "donor" ? "Donor supply desk" : "Receiver pickup desk"}
             </p>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+            <h1 className="text-balance text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
               {user.role === "donor" ? "Surplus command center" : "Rescue marketplace"}
             </h1>
             <p className="mt-3 text-base leading-relaxed text-slate-600 sm:text-lg">
@@ -273,17 +273,17 @@ export function DashboardPage(p: DashboardPageProps) {
           </section>
         )}
 
-        <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" id="overview">
+        <section className="mt-6 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4" id="overview">
           <Stat icon={user.role === "donor" ? <PackagePlus /> : <Utensils />} label={user.role === "receiver" ? "Meals available now" : "Meals listed by donors"} value={(user.role === "receiver" ? availableMeals : analytics?.meals_shared || 0).toLocaleString()} accent="green" role={user.role} />
           <Stat icon={user.role === "donor" ? <Building2 /> : <Truck />} label={user.role === "receiver" ? "My accepted claims" : "Receiver claims"} value={user.role === "receiver" ? claims.filter((claim) => claim.status !== "completed").length : analytics?.active_claims || 0} accent="blue" role={user.role} />
           <Stat icon={user.role === "donor" ? <Leaf /> : <PackageCheck />} label={user.role === "receiver" ? "Meals reserved" : "CO2 avoided"} value={user.role === "receiver" ? claimedMeals : `${analytics?.co2SavedKg || 0} kg`} accent="green" role={user.role} />
           <Stat icon={<Clock3 />} label={user.role === "receiver" ? "Next pickup ETA" : "Readiness ETA"} value={activeAiPlan ? `${activeAiPlan.etaMinutes} min` : "Select item"} accent="amber" role={user.role} />
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:gap-8" id="workspace">
+        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:gap-8" id="workspace">
           <div
             className={cn(
-              "rounded-3xl border bg-white/95 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-sm sm:p-6",
+              "min-w-0 rounded-3xl border bg-white/95 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-sm sm:p-6",
               user.role === "donor" ? "border-orange-100 ring-1 ring-orange-500/10" : "border-blue-100 ring-1 ring-blue-500/10"
             )}
           >
@@ -297,8 +297,8 @@ export function DashboardPage(p: DashboardPageProps) {
             </div>
 
             {user.role === "donor" ? (
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] xl:gap-8">
-                <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-5 shadow-inner sm:p-6">
+              <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] xl:gap-8">
+                <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-5 shadow-inner sm:p-6">
                   <div>
                     <p className="text-xs font-black uppercase tracking-wider text-orange-700">New listing</p>
                     <h3 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl">Launch a corridor-ready SKU</h3>
@@ -364,7 +364,7 @@ export function DashboardPage(p: DashboardPageProps) {
                     </button>
                   </form>
                 </div>
-                <aside className="rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-5 text-slate-200 shadow-xl sm:p-5">
+                <aside className="min-w-0 rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-5 text-slate-200 shadow-xl sm:p-5">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-teal-300">Your shelf</p>
@@ -473,7 +473,7 @@ export function DashboardPage(p: DashboardPageProps) {
                     return (
                       <article
                         key={item.id}
-                        className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 p-5 shadow-lg shadow-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-xl"
+                        className="relative min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 p-5 shadow-lg shadow-slate-900/5 transition [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-xl"
                       >
                         <div className="pointer-events-none absolute -inset-20 -top-24 bg-[radial-gradient(circle,rgba(59,130,246,0.12),transparent_65%)]" aria-hidden />
                         <div className="relative flex items-start justify-between gap-2">
@@ -488,7 +488,7 @@ export function DashboardPage(p: DashboardPageProps) {
                             <Gauge className="size-3.5" /> {readiness}% ready
                           </span>
                         </div>
-                        <h3 className="relative mt-2 text-xl font-bold tracking-tight text-slate-900">{item.title}</h3>
+                        <h3 className="relative mt-2 text-balance break-words text-xl font-bold tracking-tight text-slate-900">{item.title}</h3>
                         <div
                           className={cn(
                             "relative mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold",
@@ -497,14 +497,14 @@ export function DashboardPage(p: DashboardPageProps) {
                         >
                           <Flame className="size-3.5 shrink-0" /> {urgent} to expiry
                         </div>
-                        <p className="relative mt-3 flex items-center gap-2 text-sm text-slate-600">
-                          <Building2 className="size-4 shrink-0 text-slate-400" /> {item.donor_name}
+                        <p className="relative mt-3 flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                          <Building2 className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{item.donor_name}</span>
                         </p>
-                        <p className="relative flex items-center gap-2 text-sm text-slate-600">
-                          <MapPin className="size-4 shrink-0 text-slate-400" /> {item.location}
+                        <p className="relative flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                          <MapPin className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{item.location}</span>
                         </p>
-                        <p className="relative flex items-center gap-2 text-sm text-slate-600">
-                          <Clock3 className="size-4 shrink-0 text-slate-400" /> {item.pickup_window}
+                        <p className="relative flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                          <Clock3 className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{item.pickup_window}</span>
                         </p>
                         <div className="relative mt-4 grid gap-2 sm:grid-cols-2">
                           <button
@@ -538,7 +538,7 @@ export function DashboardPage(p: DashboardPageProps) {
 
           <aside
             className={cn(
-              "h-fit rounded-3xl border bg-white/95 p-5 shadow-xl backdrop-blur-sm sm:p-6",
+              "h-fit min-w-0 rounded-3xl border bg-white/95 p-5 shadow-xl backdrop-blur-sm sm:p-6",
               user.role === "donor" ? "border-orange-200/80 ring-1 ring-orange-500/10" : "border-blue-200/80 ring-1 ring-blue-500/10"
             )}
           >
@@ -569,7 +569,7 @@ export function DashboardPage(p: DashboardPageProps) {
                 {activeAiPlan?.source === "openrouter" ? "OpenRouter AI confidence" : activeAiPlan ? "local estimator confidence" : "dispatch confidence"}
               </span>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid min-w-0 grid-cols-2 gap-3">
               <AiMetric icon={<Clock3 />} label="ETA" value={activeAiPlan ? `${activeAiPlan.etaMinutes} min` : "Run estimate"} />
               <AiMetric icon={<Navigation />} label="Distance" value={activeAiPlan ? `${activeAiPlan.distanceKm} km` : "Pending"} />
               <AiMetric icon={<Banknote />} label="Cost" value={activeAiPlan ? `INR ${activeAiPlan.estimatedCostInr}` : "Pending"} />
@@ -577,7 +577,7 @@ export function DashboardPage(p: DashboardPageProps) {
             </div>
             {activeAiPlan && (
               <>
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
                   <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                     <p className="text-[10px] font-bold uppercase text-slate-500">Freshness</p>
                     <strong className="text-sm text-slate-900">{activeAiPlan.freshnessScore != null ? `${Math.round(activeAiPlan.freshnessScore)}/100` : "—"}</strong>
@@ -596,21 +596,21 @@ export function DashboardPage(p: DashboardPageProps) {
                   </div>
                 </div>
                 {activeAiPlan.neuralSummary && (
-                  <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/80 px-3 py-3 text-sm leading-relaxed text-violet-950">
+                  <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/80 px-3 py-3 text-sm leading-relaxed break-words text-violet-950">
                     <strong className="mb-1 block text-xs font-black uppercase text-violet-800">Neural summary</strong>
                     {activeAiPlan.neuralSummary}
                   </div>
                 )}
                 {(activeAiPlan.weatherRiskNote || activeAiPlan.batchingSuggestion) && (
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-800">
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed break-words text-slate-800">
                     <strong className="mb-1 block text-xs font-black uppercase text-slate-600">Field brief</strong>
                     {[activeAiPlan.weatherRiskNote, activeAiPlan.batchingSuggestion].filter(Boolean).join(" ")}
                   </div>
                 )}
-                {activeAiPlan.complianceNotes && <p className="mt-3 text-xs font-semibold leading-relaxed text-teal-800">{activeAiPlan.complianceNotes}</p>}
+                {activeAiPlan.complianceNotes && <p className="mt-3 break-words text-xs font-semibold leading-relaxed text-teal-800">{activeAiPlan.complianceNotes}</p>}
               </>
             )}
-            <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            <p className="mt-4 break-words text-sm leading-relaxed text-slate-600">
               {activeAiPlan?.pickupAdvice ||
                 "Claim a listing or run an estimate to receive route, price, timing, and food-safety guidance for the next handoff."}
             </p>
@@ -622,8 +622,8 @@ export function DashboardPage(p: DashboardPageProps) {
           </aside>
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:gap-8" id="route-ai">
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
+        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:gap-8" id="route-ai">
+          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-wider text-brand-600">{user.role === "donor" ? "Receiver reach map" : "Pickup mission map"}</p>
@@ -639,7 +639,7 @@ export function DashboardPage(p: DashboardPageProps) {
                 <Compass className="size-[17px]" /> Estimate route
               </button>
             </div>
-            <div className="relative h-[min(280px,58vw)] min-h-[220px] w-full overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 via-white to-teal-50/50 sm:h-[300px] lg:h-[340px]">
+            <div className="relative h-[clamp(200px,min(70vw,280px),320px)] w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 via-white to-teal-50/50 sm:h-[300px] lg:h-[340px]">
               <div className="absolute left-[8%] top-[48%] h-5 w-[82%] -rotate-[11deg] rounded-full bg-slate-900/15" />
               <div className="absolute left-[19%] top-[28%] h-4 w-[58%] rotate-[35deg] rounded-full bg-slate-900/12" />
               <div className="absolute left-[36%] top-[67%] h-4 w-1/2 -rotate-[36deg] rounded-full bg-slate-900/10" />
@@ -654,20 +654,21 @@ export function DashboardPage(p: DashboardPageProps) {
                 <Navigation className="size-4 shrink-0 text-brand-600" />{" "}
                 <span className="line-clamp-2">{activeAiPlan?.bestRoute || "Select a listing to generate a route"}</span>
               </span>
-              <span className="absolute right-4 top-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-900 shadow-md sm:text-xs">
-                <Banknote className="size-4 shrink-0" /> {activeAiPlan ? `INR ${activeAiPlan.estimatedCostInr}` : "AI cost pending"}
+              <span className="absolute right-2 top-2 flex max-w-[min(11rem,calc(100%-4.5rem))] items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[10px] font-black text-emerald-900 shadow-md sm:right-4 sm:top-4 sm:max-w-none sm:px-3 sm:py-2 sm:text-xs">
+                <Banknote className="size-4 shrink-0" />{" "}
+                <span className="min-w-0 truncate">{activeAiPlan ? `INR ${activeAiPlan.estimatedCostInr}` : "AI cost pending"}</span>
               </span>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
+          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-4">
               <p className="text-xs font-black uppercase tracking-wider text-brand-600">{user.role === "donor" ? "Donor impact" : "Receiver impact"}</p>
               <h2 className="mt-1 text-xl font-extrabold text-slate-900 sm:text-2xl">
                 {user.role === "donor" ? "Meals protected from waste" : "Meals secured for distribution"}
               </h2>
             </div>
-            <div className="h-[210px] w-full sm:h-[240px] lg:h-[270px]">
+            <div className="h-[210px] w-full min-w-0 max-w-full sm:h-[240px] lg:h-[270px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trend}>
                   <defs>
@@ -686,8 +687,8 @@ export function DashboardPage(p: DashboardPageProps) {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-2" id="activity">
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
+        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-2" id="activity">
+          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-4">
               <p className="text-xs font-black uppercase tracking-wider text-brand-600">{user.role === "donor" ? "Donation activity" : "Accepted pickups"}</p>
               <h2 className="mt-1 text-xl font-extrabold text-slate-900 sm:text-2xl">{user.role === "donor" ? "Active donation pipeline" : "Your receiver claim board"}</h2>
@@ -707,8 +708,8 @@ export function DashboardPage(p: DashboardPageProps) {
                       </span>
                       <div className="min-w-0 flex-1">
                         <strong className="block truncate text-slate-900">{item.title}</strong>
-                        <p className="text-sm text-slate-600">
-                          {item.quantity} meals at {item.location}
+                        <p className="text-sm leading-snug text-slate-600">
+                          <span className="break-words">{item.quantity} meals at {item.location}</span>
                         </p>
                       </div>
                       <em className="shrink-0 font-black not-italic text-emerald-700">{item.status}</em>
@@ -732,8 +733,10 @@ export function DashboardPage(p: DashboardPageProps) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <strong className="block truncate text-slate-900">{claim.title}</strong>
-                      <p className="text-sm text-slate-600">
-                        {claim.ai_plan.etaMinutes} min ETA | INR {claim.ai_plan.estimatedCostInr}
+                      <p className="text-sm leading-snug text-slate-600">
+                        <span className="break-words">
+                          {claim.ai_plan.etaMinutes} min ETA | INR {claim.ai_plan.estimatedCostInr}
+                        </span>
                       </p>
                     </div>
                     <em className="shrink-0 font-black not-italic text-blue-700">{claim.status}</em>
@@ -748,12 +751,12 @@ export function DashboardPage(p: DashboardPageProps) {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
+          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-4">
               <p className="text-xs font-black uppercase tracking-wider text-brand-600">{user.role === "donor" ? "Receiver demand" : "Pickup capacity"}</p>
               <h2 className="mt-1 text-xl font-extrabold text-slate-900 sm:text-2xl">{user.role === "donor" ? "Who can receive your surplus" : "Claim capacity by area"}</h2>
             </div>
-            <div className="h-[200px] w-full sm:h-[220px]">
+            <div className="h-[200px] w-full min-w-0 max-w-full sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={forecastData}>
                   <XAxis dataKey="area" axisLine={false} tickLine={false} />

@@ -54,15 +54,15 @@ export function ClaimBoard({
               </div>
               <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-lg font-bold text-slate-900">{claim.title}</h4>
-                  <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-                    <Building2 className="size-4 shrink-0 text-slate-400" /> {claim.donor_name}
+                  <h4 className="min-w-0 break-words text-lg font-bold text-slate-900">{claim.title}</h4>
+                  <p className="mt-2 flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                    <Building2 className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{claim.donor_name}</span>
                   </p>
-                  <p className="flex items-center gap-2 text-sm text-slate-600">
-                    <MapPin className="size-4 shrink-0 text-slate-400" /> Pickup: {claim.location}
+                  <p className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                    <MapPin className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">Pickup: {claim.location}</span>
                   </p>
                 </div>
-                <div className="grid shrink-0 gap-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm lg:text-right">
+                <div className="grid min-w-0 w-full max-w-full gap-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm lg:ml-auto lg:w-auto lg:max-w-[240px] lg:shrink-0 lg:text-right">
                   <strong className="text-lg font-black text-slate-900">{plan.etaMinutes} min</strong>
                   <span className="font-bold text-slate-700">INR {plan.estimatedCostInr}</span>
                   {typeof plan.freshnessScore === "number" && <span className="text-xs font-semibold text-sky-700">{Math.round(plan.freshnessScore)}/100 fresh</span>}
@@ -76,7 +76,7 @@ export function ClaimBoard({
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">Pickup pending</span>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">Delivery proof</span>
               </div>
-              <p className="mt-3 flex items-start gap-2 text-sm font-semibold text-slate-700">
+              <p className="mt-3 flex min-w-0 items-start gap-2 break-words text-sm font-semibold text-slate-700">
                 <Navigation className="mt-0.5 size-4 shrink-0 text-brand-600" /> {plan.bestRoute}
               </p>
             </article>

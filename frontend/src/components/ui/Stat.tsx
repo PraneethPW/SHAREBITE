@@ -16,7 +16,7 @@ export function Stat({
   role: Role;
 }) {
   const card = cn(
-    "relative overflow-hidden rounded-2xl border p-5 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg sm:p-6",
+    "relative min-w-0 overflow-hidden rounded-2xl border p-5 shadow-md transition [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-lg sm:p-6",
     accent === "green" &&
       (role === "donor" ? "border-orange-100 bg-gradient-to-br from-orange-50/90 to-white" : "border-emerald-100 bg-gradient-to-br from-emerald-50/90 to-white"),
     accent === "blue" && "border-blue-100 bg-gradient-to-br from-blue-50/80 to-white",
@@ -32,7 +32,7 @@ export function Stat({
     <div className={card}>
       <div className={iconWrap}>{icon}</div>
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
-      <strong className="mt-1 block text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{value}</strong>
+      <strong className="mt-1 block min-w-0 break-words text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{value}</strong>
     </div>
   );
 }

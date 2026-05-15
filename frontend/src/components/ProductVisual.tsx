@@ -12,7 +12,7 @@ const fallback = (
 
 export function ProductVisual() {
   return (
-    <div className="relative h-[min(52vw,380px)] min-h-[240px] w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 shadow-[0_24px_80px_rgba(2,6,23,0.55)] ring-1 ring-white/5 sm:min-h-[300px] sm:h-[min(48vh,440px)]">
+    <div className="relative isolate h-[clamp(220px,min(52vw,42svh),380px)] min-h-[220px] w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 shadow-[0_24px_80px_rgba(2,6,23,0.55)] ring-1 ring-white/5 sm:min-h-[280px] sm:h-[min(48vh,440px)] touch-manipulation [&_canvas]:max-lg:pointer-events-none">
       <Suspense fallback={fallback}>
         <ProductVisualInner />
       </Suspense>

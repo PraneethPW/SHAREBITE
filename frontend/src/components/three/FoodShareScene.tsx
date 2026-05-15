@@ -2,10 +2,13 @@ import { useFrame } from "@react-three/fiber";
 import { Float, OrbitControls, PerspectiveCamera, Text } from "@react-three/drei";
 import { useRef } from "react";
 import type { Group } from "three";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 export function FoodShareScene() {
   const vehicle = useRef<Group>(null);
   const route = useRef<Group>(null);
+  /** One-finger orbit fights vertical page scroll on phones; keep auto-rotate only. */
+  const allowPointerOrbit = useMediaQuery("(pointer: fine)");
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -136,7 +139,13 @@ export function FoodShareScene() {
           </Text>
         </group>
       </Float>
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.35} />
+      <OrbitControls
+        enablePan={false}
+        enableZoom={false}
+        enableRotate={allowPointerOrbit}
+        autoRotate
+        autoRotateSpeed={0.35}
+      />
     </>
   );
 }

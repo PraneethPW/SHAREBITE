@@ -27,9 +27,14 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
-    @apply min-w-[320px] bg-stone-100 font-sans text-slate-900 antialiased;
+    @apply min-h-dvh min-w-0 max-w-[100dvw] overflow-x-clip bg-stone-100 font-sans text-slate-900 antialiased;
+  }
+  #root {
+    @apply min-h-dvh min-w-0 max-w-[100dvw] overflow-x-clip;
   }
   button:not(:disabled) {
     @apply cursor-pointer;

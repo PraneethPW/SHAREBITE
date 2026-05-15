@@ -15,7 +15,7 @@ export function LandingPersonas() {
         </p>
       </div>
       <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-2 lg:gap-8">
-        <article className="group relative overflow-hidden rounded-2xl border border-orange-100 bg-white p-6 shadow-xl shadow-orange-950/5 ring-1 ring-orange-500/10 transition hover:-translate-y-0.5 hover:shadow-2xl sm:p-8">
+        <article className="group relative min-w-0 overflow-hidden rounded-2xl border border-orange-100 bg-white p-6 shadow-xl shadow-orange-950/5 ring-1 ring-orange-500/10 transition [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-2xl sm:p-8">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-donor-500 to-amber-400" />
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-800">
             <PackagePlus className="size-4" /> Donor control room
@@ -42,7 +42,7 @@ export function LandingPersonas() {
           </p>
         </article>
 
-        <article className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-6 shadow-xl shadow-blue-950/5 ring-1 ring-receiver-500/10 transition hover:-translate-y-0.5 hover:shadow-2xl sm:p-8">
+        <article className="group relative min-w-0 overflow-hidden rounded-2xl border border-blue-100 bg-white p-6 shadow-xl shadow-blue-950/5 ring-1 ring-receiver-500/10 transition [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-2xl sm:p-8">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-receiver-500 to-teal-400" />
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-800">
             <HandHeart className="size-4" /> Receiver mission desk

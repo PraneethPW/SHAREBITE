@@ -25,10 +25,12 @@ export function LandingPage(p: LandingPageProps) {
   const { authMode, role, onSetRole, authError, selectedDemo, onGoToAuth, onSubmitAuth, onSwitchAuthMode } = p;
 
   return (
-      <main className="min-h-screen overflow-x-clip bg-slate-950 text-slate-200">
-        <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur-xl sm:gap-4 sm:px-6 lg:px-8">
-          <Brand />
-          <div className="order-3 flex w-full max-w-full flex-nowrap items-center gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:order-none sm:ml-auto sm:w-auto sm:max-w-none sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden lg:gap-5">
+      <main className="min-h-dvh overflow-x-clip bg-slate-950 text-slate-200">
+        <nav className="sticky top-0 z-50 flex min-w-0 max-w-full flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur-xl sm:gap-4 sm:px-6 lg:px-8">
+          <div className="min-w-0 shrink">
+            <Brand />
+          </div>
+          <div className="order-3 flex w-full min-w-0 max-w-full flex-nowrap items-center gap-3 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:order-none sm:ml-auto sm:w-auto sm:max-w-none sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden lg:gap-5">
             <a className="shrink-0 whitespace-nowrap text-sm font-semibold text-slate-400 transition hover:text-white" href="#personas">
               Donors & receivers
             </a>
@@ -59,8 +61,8 @@ export function LandingPage(p: LandingPageProps) {
         </nav>
 
         <section className="relative border-b border-white/5 bg-[radial-gradient(ellipse_80%_50%_at_20%_-10%,rgba(139,92,246,0.35),transparent),radial-gradient(ellipse_60%_45%_at_85%_10%,rgba(59,130,246,0.22),transparent),linear-gradient(180deg,#020617_0%,#0f172a_55%,#020617_100%)]">
-          <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-4 pb-16 pt-10 sm:gap-12 sm:px-6 sm:pb-20 sm:pt-14 lg:grid-cols-2 lg:gap-14 lg:px-8 lg:pb-24 lg:pt-16">
-            <div className="max-w-xl lg:max-w-none">
+          <div className="mx-auto grid min-w-0 max-w-[1440px] items-center gap-10 px-4 pb-16 pt-10 sm:gap-12 sm:px-6 sm:pb-20 sm:pt-14 lg:grid-cols-2 lg:gap-14 lg:px-8 lg:pb-24 lg:pt-16">
+            <div className="min-w-0 max-w-xl lg:max-w-none">
               <div>
                 <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-violet-200">
                   <Cpu className="size-4" /> Neural logistics for surplus food
@@ -105,7 +107,7 @@ export function LandingPage(p: LandingPageProps) {
               </div>
             </div>
 
-            <div className="relative min-h-0">
+            <div className="relative min-h-0 min-w-0">
               <ProductVisual />
               <div className="mt-4 flex flex-col gap-3 sm:absolute sm:inset-x-0 sm:bottom-4 sm:mt-0 sm:flex-row sm:justify-between sm:gap-4 sm:px-2">
                 <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-slate-900/90 p-3.5 shadow-xl backdrop-blur-md sm:max-w-[240px]">
@@ -134,7 +136,7 @@ export function LandingPage(p: LandingPageProps) {
 
         <section className="border-t border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-14 sm:px-6 sm:py-20 lg:px-8" id="auth">
           <form
-            className="mx-auto grid w-full max-w-md gap-4 rounded-3xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/40 sm:p-8"
+            className="mx-auto grid w-full min-w-0 max-w-md gap-4 rounded-3xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/40 sm:p-8"
             onSubmit={onSubmitAuth}
             key={`${authMode}-${role}`}
           >

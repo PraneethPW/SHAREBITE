@@ -19,7 +19,7 @@ export function Marketing() {
       </div>
       <div className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
         {capabilities.map(([title, copy, Icon]) => (
-          <article key={title} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-lg">
+          <article key={title} className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50/50 p-6 shadow-sm transition [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:border-brand-200 [@media(hover:hover)]:hover:bg-white [@media(hover:hover)]:hover:shadow-lg">
             <span className="grid size-12 place-items-center rounded-xl bg-white text-brand-600 shadow-md ring-1 ring-slate-100">
               <Icon className="size-6" />
             </span>
