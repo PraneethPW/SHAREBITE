@@ -19,6 +19,7 @@ import {
   PackageCheck,
   PackagePlus,
   Radar,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -45,6 +46,7 @@ export type DashboardPageProps = {
   notice: DashboardNotice;
   onDismissNotice: () => void;
   onLogout: () => void;
+  onRefresh: () => void;
   onNavigate: (path: string) => void;
   donorLiveSkus: number;
   donorMealsOnShelf: number;
@@ -82,6 +84,7 @@ export function DashboardPage(p: DashboardPageProps) {
     notice,
     onDismissNotice,
     onLogout,
+    onRefresh,
     onNavigate,
     donorLiveSkus,
     donorMealsOnShelf,
@@ -237,6 +240,13 @@ export function DashboardPage(p: DashboardPageProps) {
             <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold capitalize text-slate-800 shadow-sm">
               <UserRound className="size-[17px] text-slate-500" /> {user.role}
             </span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+              onClick={onRefresh}
+            >
+              <RefreshCw className="size-[17px]" /> Refresh
+            </button>
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"

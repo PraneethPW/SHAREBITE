@@ -85,7 +85,23 @@ function ShareBiteApp() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [location.pathname]);
+    if (!token) return;
+    const id = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(id);
+  }, [location.pathname, refresh, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const sync = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [refresh, token]);
 
   useEffect(() => {
     if (!notice) return;
@@ -318,6 +334,7 @@ function ShareBiteApp() {
         notice={notice}
         onDismissNotice={() => setNotice(null)}
         onLogout={logout}
+        onRefresh={() => void refresh()}
         onNavigate={navigate}
         donorLiveSkus={donorLiveSkus}
         donorMealsOnShelf={donorMealsOnShelf}
