@@ -5,7 +5,7 @@ import { api } from "./env";
 import "./index.css";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import type { DashboardView } from "./pages/DashboardPage";
+import type { DashboardNotice, DashboardView } from "./pages/DashboardPage";
 import { LandingPage } from "./pages/LandingPage";
 import { PublicSectionPage } from "./pages/PublicSectionPage";
 import type { AiPlan, AnalyticsOverview, Claim, Donation, FeedFilter, Role, User } from "./types/foodshare";
@@ -34,7 +34,7 @@ function ShareBiteApp() {
   const [aiPlan, setAiPlan] = useState<AiPlan | null>(null);
   const [selectedDonationId, setSelectedDonationId] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState("");
-  const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState<DashboardNotice>(null);
   const [authError, setAuthError] = useState("");
   const [feedFilter, setFeedFilter] = useState<FeedFilter>("all");
 
@@ -86,6 +86,12 @@ function ShareBiteApp() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 6500);
+    return () => window.clearTimeout(id);
+  }, [notice]);
 
   function switchAuthMode(nextMode: "login" | "register", nextRole = role) {
     setAuthMode(nextMode);
@@ -141,24 +147,40 @@ function ShareBiteApp() {
 
   async function addDonation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     const form = new FormData(event.currentTarget);
     const expiresAt = new Date(Date.now() + Number(form.get("hours")) * 60 * 60 * 1000).toISOString();
-    await api.post(
-      "/donations",
-      {
-        title: String(form.get("title")),
-        category: String(form.get("category")),
-        quantity: Number(form.get("quantity")),
-        location: String(form.get("location")),
-        pickupWindow: String(form.get("pickupWindow")),
-        expiresAt,
-        notes: String(form.get("notes"))
-      },
-      { headers: authHeaders }
-    );
-    event.currentTarget.reset();
-    setMessage("Listing published. FoodShare AI is ready to route the pickup.");
-    await refresh();
+    const title = String(form.get("title"));
+    try {
+      await api.post(
+        "/donations",
+        {
+          title,
+          category: String(form.get("category")),
+          quantity: Number(form.get("quantity")),
+          location: String(form.get("location")),
+          pickupWindow: String(form.get("pickupWindow")),
+          expiresAt,
+          notes: String(form.get("notes"))
+        },
+        { headers: authHeaders }
+      );
+      formElement.reset();
+      setNotice({
+        tone: "success",
+        title: "Food published successfully",
+        body: `${title || "Your food listing"} is now live for receivers to discover and claim.`
+      });
+      void refresh();
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        title: "Food was not published",
+        body: axios.isAxiosError(error)
+          ? error.response?.data?.message || "Please check the listing details and try again."
+          : "Please check the listing details and try again."
+      });
+    }
   }
 
   async function claimFood(id: string) {
@@ -166,14 +188,26 @@ function ShareBiteApp() {
       setSelectedDonationId(id);
       const { data } = await api.post(`/donations/${id}/claim`, {}, { headers: authHeaders });
       setAiPlan(data.aiPlan);
-      setMessage(`Claim accepted. AI dispatch generated ${data.aiPlan.etaMinutes} min ETA and INR ${data.aiPlan.estimatedCostInr} pickup cost.`);
+      setNotice({
+        tone: "success",
+        title: "Food claimed successfully",
+        body: `Your pickup is confirmed. AI dispatch generated a ${data.aiPlan.etaMinutes} min ETA and INR ${data.aiPlan.estimatedCostInr} pickup cost.`
+      });
       await refresh();
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setMessage(error.response?.data?.message || "Could not claim this listing. Please refresh and try again.");
+        setNotice({
+          tone: "error",
+          title: "Food was not claimed",
+          body: error.response?.data?.message || "Could not claim this listing. Please refresh and try again."
+        });
         return;
       }
-      setMessage("Could not claim this listing. Please refresh and try again.");
+      setNotice({
+        tone: "error",
+        title: "Food was not claimed",
+        body: "Could not claim this listing. Please refresh and try again."
+      });
     }
   }
 
@@ -256,7 +290,8 @@ function ShareBiteApp() {
       <DashboardPage
         view={view}
         user={user}
-        message={message}
+        notice={notice}
+        onDismissNotice={() => setNotice(null)}
         onLogout={logout}
         onNavigate={navigate}
         donorLiveSkus={donorLiveSkus}

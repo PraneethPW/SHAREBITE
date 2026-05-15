@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import {
+  AlertCircle,
   Banknote,
   BarChart3,
   Brain,
@@ -36,11 +37,13 @@ import { hoursUntil, handoffReadiness } from "../lib/format";
 import type { AiPlan, AnalyticsOverview, Claim, Donation, FeedFilter, User } from "../types/foodshare";
 
 export type DashboardView = "overview" | "workspace" | "route-ai" | "activity" | "analytics";
+export type DashboardNotice = { tone: "success" | "error"; title: string; body: string } | null;
 
 export type DashboardPageProps = {
   view: DashboardView;
   user: User;
-  message: string;
+  notice: DashboardNotice;
+  onDismissNotice: () => void;
   onLogout: () => void;
   onNavigate: (path: string) => void;
   donorLiveSkus: number;
@@ -75,7 +78,8 @@ export function DashboardPage(p: DashboardPageProps) {
   const {
     view,
     user,
-    message,
+    notice,
+    onDismissNotice,
     onLogout,
     onNavigate,
     donorLiveSkus,
@@ -240,8 +244,40 @@ export function DashboardPage(p: DashboardPageProps) {
           </div>
         </header>
 
-        {message && (
-          <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-900">{message}</div>
+        {notice && (
+          <div
+            className={cn(
+              "fixed inset-x-3 top-20 z-[70] mx-auto max-w-2xl rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md sm:top-5 sm:px-5",
+              notice.tone === "success"
+                ? "border-emerald-200 bg-emerald-50/95 text-emerald-950 shadow-emerald-950/15"
+                : "border-red-200 bg-red-50/95 text-red-950 shadow-red-950/15"
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl",
+                  notice.tone === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+                )}
+              >
+                {notice.tone === "success" ? <CheckCircle2 className="size-5" /> : <AlertCircle className="size-5" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="block text-sm font-black sm:text-base">{notice.title}</strong>
+                <p className="mt-1 text-sm font-semibold leading-relaxed opacity-85">{notice.body}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-xs font-black opacity-70 transition hover:bg-black/5 hover:opacity-100"
+                onClick={onDismissNotice}
+                aria-label="Dismiss notification"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         )}
 
         {user.role === "donor" ? (
