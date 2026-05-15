@@ -1,17 +1,32 @@
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api } from "./env";
 import "./index.css";
+import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import type { DashboardView } from "./pages/DashboardPage";
 import { LandingPage } from "./pages/LandingPage";
+import { PublicSectionPage } from "./pages/PublicSectionPage";
 import type { AiPlan, AnalyticsOverview, Claim, Donation, FeedFilter, Role, User } from "./types/foodshare";
 import { demoCredentials } from "./types/foodshare";
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <ShareBiteApp />
+    </BrowserRouter>
+  );
+}
+
+function ShareBiteApp() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState(localStorage.getItem("foodshare_token") || localStorage.getItem("sharebite_token") || "");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [role, setRole] = useState<Role>("donor");
+  const [isBooting, setIsBooting] = useState(Boolean(token));
   const [donations, setDonations] = useState<Donation[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsOverview | null>(null);
@@ -30,13 +45,15 @@ export default function App() {
     async (nextToken = token) => {
       if (!nextToken) return;
       const headers = { Authorization: `Bearer ${nextToken}` };
-      const [me, list, stats, claimList] = await Promise.all([
-        api.get("/me", { headers }),
-        api.get("/donations", { headers }),
+      const me = await api.get("/me", { headers });
+      const nextUser = me.data.user as User;
+      const donationScope = nextUser.role === "receiver" ? "available" : "my";
+      const [list, stats, claimList] = await Promise.all([
+        api.get(`/donations?scope=${donationScope}`, { headers }),
         api.get("/analytics/overview", { headers }),
         api.get("/claims", { headers })
       ]);
-      setUser(me.data.user);
+      setUser(nextUser);
       setDonations(list.data.donations);
       setAnalytics(stats.data);
       setClaims(claimList.data.claims);
@@ -49,14 +66,26 @@ export default function App() {
     localStorage.removeItem("sharebite_token");
     setToken("");
     setUser(null);
+    navigate("/");
   }
 
   useEffect(() => {
     const id = window.setTimeout(() => {
-      void refresh().catch(() => logout());
+      void refresh()
+        .catch(() => {
+          localStorage.removeItem("foodshare_token");
+          localStorage.removeItem("sharebite_token");
+          setToken("");
+          setUser(null);
+        })
+        .finally(() => setIsBooting(false));
     }, 0);
     return () => window.clearTimeout(id);
   }, [refresh]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
 
   function switchAuthMode(nextMode: "login" | "register", nextRole = role) {
     setAuthMode(nextMode);
@@ -64,23 +93,19 @@ export default function App() {
     setAuthError("");
   }
 
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   function goToAuth(mode: "login" | "register", nextRole = role) {
     switchAuthMode(mode, nextRole);
-    setTimeout(() => scrollToSection("auth"), 0);
+    navigate(`/${mode}`);
   }
 
-  async function handleAuth(event: React.FormEvent<HTMLFormElement>) {
+  async function handleAuth(event: React.FormEvent<HTMLFormElement>, requestedMode = authMode) {
     event.preventDefault();
     setAuthError("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") || "").trim().toLowerCase();
     const password = String(form.get("password") || "");
     const payload =
-      authMode === "login"
+      requestedMode === "login"
         ? { email, password }
         : {
             name: String(form.get("name") || "").trim(),
@@ -91,7 +116,7 @@ export default function App() {
           };
 
     try {
-      const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
+      const endpoint = requestedMode === "login" ? "/auth/login" : "/auth/register";
       const { data } = await api.post(endpoint, payload, {
         headers: { "Content-Type": "application/json" }
       });
@@ -99,17 +124,18 @@ export default function App() {
       setToken(data.token);
       setUser(data.user);
       await refresh(data.token);
+      navigate(`/${data.user.role}/overview`);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setAuthError(
           [error.response?.data?.message, error.response?.data?.hint].filter(Boolean).join(" ") ||
-            (authMode === "login"
+            (requestedMode === "login"
               ? "Could not sign in. Check email and password."
               : "Could not create the account. Fill every field (name and location need at least 2 characters).")
         );
         return;
       }
-      setAuthError(authMode === "login" ? "Could not sign in." : "Could not create the account.");
+      setAuthError(requestedMode === "login" ? "Could not sign in." : "Could not create the account.");
     }
   }
 
@@ -175,7 +201,7 @@ export default function App() {
 
   const filtered = donations.filter((item) => `${item.title} ${item.location} ${item.category}`.toLowerCase().includes(search.toLowerCase()));
   const myListings = useMemo(
-    () => (user ? donations.filter((d) => d.donor_name === user.name && d.status !== "expired") : []),
+    () => (user ? donations.filter((d) => d.donor_id === user.id && d.status !== "expired") : []),
     [donations, user]
   );
   const receiverFeed = useMemo(() => {
@@ -220,53 +246,106 @@ export default function App() {
         { area: "East", claims: Math.max(9, Math.round(availableMeals * 0.32) || 9) }
       ];
 
-  if (!user) {
+  function renderDashboard(view: DashboardView, requiredRole: Role) {
+    if (isBooting) {
+      return <main className="grid min-h-dvh place-items-center bg-slate-950 text-sm font-bold text-slate-200">Opening workspace...</main>;
+    }
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.role !== requiredRole) return <Navigate to={`/${user.role}/overview`} replace />;
     return (
-      <LandingPage
-        authMode={authMode}
-        role={role}
-        onSetRole={setRole}
-        authError={authError}
-        selectedDemo={selectedDemo}
-        onGoToAuth={goToAuth}
-        onSubmitAuth={handleAuth}
-        onSwitchAuthMode={switchAuthMode}
+      <DashboardPage
+        view={view}
+        user={user}
+        message={message}
+        onLogout={logout}
+        onNavigate={navigate}
+        donorLiveSkus={donorLiveSkus}
+        donorMealsOnShelf={donorMealsOnShelf}
+        donorUrgentSkus={donorUrgentSkus}
+        receiverFeed={receiverFeed}
+        claimedMeals={claimedMeals}
+        analytics={analytics}
+        claims={claims}
+        myListings={myListings}
+        selectedDonationId={selectedDonationId}
+        setSelectedDonationId={setSelectedDonationId}
+        onAddDonation={addDonation}
+        search={search}
+        setSearch={setSearch}
+        feedFilter={feedFilter}
+        setFeedFilter={setFeedFilter}
+        onEstimate={estimate}
+        onClaimFood={claimFood}
+        selectedClaimId={selectedClaimId}
+        setSelectedClaimId={setSelectedClaimId}
+        activeAiPlan={activeAiPlan}
+        activeContextTitle={activeContextTitle}
+        activeOrigin={activeOrigin}
+        activeDestination={activeDestination}
+        trend={trend}
+        forecastData={forecastData}
+        availableMeals={availableMeals}
       />
     );
   }
 
   return (
-    <DashboardPage
-      user={user}
-      message={message}
-      onLogout={logout}
-      onScrollTo={scrollToSection}
-      donorLiveSkus={donorLiveSkus}
-      donorMealsOnShelf={donorMealsOnShelf}
-      donorUrgentSkus={donorUrgentSkus}
-      receiverFeed={receiverFeed}
-      claimedMeals={claimedMeals}
-      analytics={analytics}
-      claims={claims}
-      myListings={myListings}
-      selectedDonationId={selectedDonationId}
-      setSelectedDonationId={setSelectedDonationId}
-      onAddDonation={addDonation}
-      search={search}
-      setSearch={setSearch}
-      feedFilter={feedFilter}
-      setFeedFilter={setFeedFilter}
-      onEstimate={estimate}
-      onClaimFood={claimFood}
-      selectedClaimId={selectedClaimId}
-      setSelectedClaimId={setSelectedClaimId}
-      activeAiPlan={activeAiPlan}
-      activeContextTitle={activeContextTitle}
-      activeOrigin={activeOrigin}
-      activeDestination={activeDestination}
-      trend={trend}
-      forecastData={forecastData}
-      availableMeals={availableMeals}
-    />
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <LandingPage
+            page="home"
+            onGoToAuth={goToAuth}
+            onNavigate={navigate}
+          />
+        }
+      />
+      <Route path="/personas" element={<PublicSectionPage page="personas" onGoToAuth={goToAuth} onNavigate={navigate} />} />
+      <Route path="/ai-stack" element={<PublicSectionPage page="ai-stack" onGoToAuth={goToAuth} onNavigate={navigate} />} />
+      <Route path="/platform" element={<PublicSectionPage page="platform" onGoToAuth={goToAuth} onNavigate={navigate} />} />
+      <Route path="/proof" element={<PublicSectionPage page="proof" onGoToAuth={goToAuth} onNavigate={navigate} />} />
+      <Route
+        path="/login"
+        element={
+          <AuthPage
+            mode="login"
+            role={role}
+            selectedDemo={selectedDemo}
+            authError={authError}
+            onSetRole={setRole}
+            onSubmitAuth={(event) => handleAuth(event, "login")}
+            onNavigate={navigate}
+          />
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <AuthPage
+            mode="register"
+            role={role}
+            selectedDemo={selectedDemo}
+            authError={authError}
+            onSetRole={setRole}
+            onSubmitAuth={(event) => handleAuth(event, "register")}
+            onNavigate={navigate}
+          />
+        }
+      />
+      <Route path="/donor" element={<Navigate to="/donor/overview" replace />} />
+      <Route path="/donor/overview" element={renderDashboard("overview", "donor")} />
+      <Route path="/donor/donations" element={renderDashboard("workspace", "donor")} />
+      <Route path="/donor/route-ai" element={renderDashboard("route-ai", "donor")} />
+      <Route path="/donor/activity" element={renderDashboard("activity", "donor")} />
+      <Route path="/donor/analytics" element={renderDashboard("analytics", "donor")} />
+      <Route path="/receiver" element={<Navigate to="/receiver/overview" replace />} />
+      <Route path="/receiver/overview" element={renderDashboard("overview", "receiver")} />
+      <Route path="/receiver/feed" element={renderDashboard("workspace", "receiver")} />
+      <Route path="/receiver/route-ai" element={renderDashboard("route-ai", "receiver")} />
+      <Route path="/receiver/claims" element={renderDashboard("activity", "receiver")} />
+      <Route path="/receiver/impact" element={renderDashboard("analytics", "receiver")} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

@@ -6,6 +6,7 @@ export type User = { id: string; name: string; email: string; role: Role; locati
 
 export type Donation = {
   id: string;
+  donor_id: string;
   title: string;
   category: string;
   quantity: number;

@@ -35,11 +35,14 @@ import { cn } from "../cn";
 import { hoursUntil, handoffReadiness } from "../lib/format";
 import type { AiPlan, AnalyticsOverview, Claim, Donation, FeedFilter, User } from "../types/foodshare";
 
+export type DashboardView = "overview" | "workspace" | "route-ai" | "activity" | "analytics";
+
 export type DashboardPageProps = {
+  view: DashboardView;
   user: User;
   message: string;
   onLogout: () => void;
-  onScrollTo: (id: string) => void;
+  onNavigate: (path: string) => void;
   donorLiveSkus: number;
   donorMealsOnShelf: number;
   donorUrgentSkus: number;
@@ -70,10 +73,11 @@ export type DashboardPageProps = {
 
 export function DashboardPage(p: DashboardPageProps) {
   const {
+    view,
     user,
     message,
     onLogout,
-    onScrollTo,
+    onNavigate,
     donorLiveSkus,
     donorMealsOnShelf,
     donorUrgentSkus,
@@ -101,6 +105,16 @@ export function DashboardPage(p: DashboardPageProps) {
     forecastData,
     availableMeals
   } = p;
+  const basePath = `/${user.role}`;
+  const navClass = (target: DashboardView) =>
+    cn(
+      "flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-sm font-bold transition sm:min-w-[140px] lg:w-full lg:min-w-0",
+      view === target ? "bg-white/10 text-white ring-1 ring-white/10" : "text-slate-400 hover:bg-white/5 hover:text-white"
+    );
+  const showOverview = view === "overview" || view === "analytics";
+  const showWorkspace = view === "workspace";
+  const showRouteAi = view === "route-ai" || view === "analytics";
+  const showActivity = view === "activity" || view === "analytics";
 
   return (
     <main
@@ -123,33 +137,40 @@ export function DashboardPage(p: DashboardPageProps) {
         <nav className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
-            className="flex shrink-0 items-center gap-2.5 rounded-xl bg-white/10 px-3.5 py-3 text-left text-sm font-bold text-white ring-1 ring-white/10 sm:min-w-[140px] lg:w-full lg:min-w-0"
-            onClick={() => onScrollTo("overview")}
+            className={navClass("overview")}
+            onClick={() => onNavigate(`${basePath}/overview`)}
           >
             <BarChart3 className="size-[18px] shrink-0" /> Overview
           </button>
           <button
             type="button"
-            className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-sm font-bold text-slate-400 transition hover:bg-white/5 hover:text-white sm:min-w-[140px] lg:w-full lg:min-w-0"
-            onClick={() => onScrollTo("workspace")}
+            className={navClass("workspace")}
+            onClick={() => onNavigate(`${basePath}/${user.role === "donor" ? "donations" : "feed"}`)}
           >
             {user.role === "donor" ? <PackagePlus className="size-[18px] shrink-0" /> : <Utensils className="size-[18px] shrink-0" />}{" "}
             {user.role === "donor" ? "Donations" : "Food Feed"}
           </button>
           <button
             type="button"
-            className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-sm font-bold text-slate-400 transition hover:bg-white/5 hover:text-white sm:min-w-[140px] lg:w-full lg:min-w-0"
-            onClick={() => onScrollTo("route-ai")}
+            className={navClass("route-ai")}
+            onClick={() => onNavigate(`${basePath}/route-ai`)}
           >
             <Map className="size-[18px] shrink-0" /> Route AI
           </button>
           <button
             type="button"
-            className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-3 text-left text-sm font-bold text-slate-400 transition hover:bg-white/5 hover:text-white sm:min-w-[140px] lg:w-full lg:min-w-0"
-            onClick={() => onScrollTo("activity")}
+            className={navClass("activity")}
+            onClick={() => onNavigate(`${basePath}/${user.role === "donor" ? "activity" : "claims"}`)}
           >
             {user.role === "donor" ? <Building2 className="size-[18px] shrink-0" /> : <PackageCheck className="size-[18px] shrink-0" />}{" "}
             {user.role === "donor" ? "Demand" : "My Claims"}
+          </button>
+          <button
+            type="button"
+            className={navClass("analytics")}
+            onClick={() => onNavigate(`${basePath}/${user.role === "donor" ? "analytics" : "impact"}`)}
+          >
+            <Leaf className="size-[18px] shrink-0" /> {user.role === "donor" ? "Analytics" : "Impact"}
           </button>
         </nav>
         <div className="mt-2 rounded-2xl border border-white/10 bg-gradient-to-br from-teal-500/15 to-blue-500/10 p-4 text-sm leading-relaxed text-slate-300">
@@ -273,14 +294,14 @@ export function DashboardPage(p: DashboardPageProps) {
           </section>
         )}
 
-        <section className="mt-6 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4" id="overview">
+        {showOverview && <section className="mt-6 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4" id="overview">
           <Stat icon={user.role === "donor" ? <PackagePlus /> : <Utensils />} label={user.role === "receiver" ? "Meals available now" : "Meals listed by donors"} value={(user.role === "receiver" ? availableMeals : analytics?.meals_shared || 0).toLocaleString()} accent="green" role={user.role} />
           <Stat icon={user.role === "donor" ? <Building2 /> : <Truck />} label={user.role === "receiver" ? "My accepted claims" : "Receiver claims"} value={user.role === "receiver" ? claims.filter((claim) => claim.status !== "completed").length : analytics?.active_claims || 0} accent="blue" role={user.role} />
           <Stat icon={user.role === "donor" ? <Leaf /> : <PackageCheck />} label={user.role === "receiver" ? "Meals reserved" : "CO2 avoided"} value={user.role === "receiver" ? claimedMeals : `${analytics?.co2SavedKg || 0} kg`} accent="green" role={user.role} />
           <Stat icon={<Clock3 />} label={user.role === "receiver" ? "Next pickup ETA" : "Readiness ETA"} value={activeAiPlan ? `${activeAiPlan.etaMinutes} min` : "Select item"} accent="amber" role={user.role} />
-        </section>
+        </section>}
 
-        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:gap-8" id="workspace">
+        {showWorkspace && <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:gap-8" id="workspace">
           <div
             className={cn(
               "min-w-0 rounded-3xl border bg-white/95 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-sm sm:p-6",
@@ -421,7 +442,7 @@ export function DashboardPage(p: DashboardPageProps) {
                               className="rounded-lg px-3 py-2 text-xs font-bold text-teal-300 underline-offset-2 hover:underline"
                               onClick={() => {
                                 setSelectedDonationId(item.id);
-                                onScrollTo("route-ai");
+                                onNavigate(`${basePath}/route-ai`);
                               }}
                             >
                               Map
@@ -620,9 +641,9 @@ export function DashboardPage(p: DashboardPageProps) {
               </p>
             )}
           </aside>
-        </section>
+        </section>}
 
-        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:gap-8" id="route-ai">
+        {showRouteAi && <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:gap-8" id="route-ai">
           <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -685,9 +706,9 @@ export function DashboardPage(p: DashboardPageProps) {
               </ResponsiveContainer>
             </div>
           </div>
-        </section>
+        </section>}
 
-        <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-2" id="activity">
+        {showActivity && <section className="mt-8 grid min-w-0 gap-6 lg:grid-cols-2" id="activity">
           <div className="min-w-0 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-lg backdrop-blur-sm sm:p-6">
             <div className="mb-4">
               <p className="text-xs font-black uppercase tracking-wider text-brand-600">{user.role === "donor" ? "Donation activity" : "Accepted pickups"}</p>
@@ -767,7 +788,7 @@ export function DashboardPage(p: DashboardPageProps) {
               </ResponsiveContainer>
             </div>
           </div>
-        </section>
+        </section>}
       </section>
     </main>
   );

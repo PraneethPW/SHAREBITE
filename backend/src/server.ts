@@ -119,13 +119,21 @@ app.post("/auth/login", async (req, res, next) => {
 app.get("/me", auth, (req, res) => res.json({ user: req.user }));
 
 app.get("/donations", auth, async (req, res) => {
+  const scope = String(req.query.scope || "dashboard");
+  const scopedWhere =
+    scope === "my"
+      ? "d.donor_id=$1"
+      : scope === "available"
+        ? "d.status='available'"
+        : "d.status='available' OR d.donor_id=$1";
+  const params = scope === "available" ? [] : [req.user!.id];
   const result = await query<any>(
     `SELECT d.*, u.name AS donor_name
      FROM donations d
      JOIN users u ON u.id=d.donor_id
-     WHERE d.status='available' OR d.donor_id=$1
+     WHERE ${scopedWhere}
      ORDER BY d.created_at DESC`,
-    [req.user!.id]
+    params
   );
   res.json({ donations: result.rows });
 });
@@ -214,7 +222,11 @@ app.post("/donations/:id/claim", auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("UPDATE donations SET status='claimed' WHERE id=$1", [donation.id]);
+    const update = await client.query("UPDATE donations SET status='claimed' WHERE id=$1 AND status='available'", [donation.id]);
+    if (!update.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ message: "This food was already claimed. Refresh the feed for available listings." });
+    }
     const claim = await client.query<any>(
       `INSERT INTO claims (donation_id, receiver_id, status, ai_plan) VALUES ($1,$2,'approved',$3) RETURNING *`,
       [donation.id, req.user!.id, aiPlan]
