@@ -28,6 +28,33 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+## Android Local Runs
+
+This does not change the Vercel/Railway deployment.
+
+USB mode, recommended while the phone is connected:
+
+```bash
+cd frontend
+npm run android:run:usb
+```
+
+If the device says `offline`, unlock the phone, accept the USB debugging prompt, unplug/replug USB, then run the command again.
+
+Same Wi-Fi LAN mode:
+
+```bash
+cd frontend
+npm run android:run:lan
+```
+
+Keep the backend running on the laptop while using either Android mode:
+
+```bash
+cd backend
+npm run dev
+```
+
 Demo accounts:
 
 - Donor: `donor@sharebite.dev` / `password123`

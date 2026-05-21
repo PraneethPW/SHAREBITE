@@ -6,9 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android:usb": "tsc -b && vite build --mode android-usb",
+    "build:android:lan": "tsc -b && vite build --mode android-lan",
     "lint": "eslint .",
     "preview": "vite preview",
     "android:sync": "npm run build && cap sync android",
+    "android:sync:usb": "npm run build:android:usb && cap sync android",
+    "android:sync:lan": "npm run build:android:lan && cap sync android",
+    "android:env:lan": "node scripts/write-android-lan-env.mjs",
+    "android:adb:reverse": "node scripts/adb-reverse.mjs",
+    "android:run:usb": "npm run android:sync:usb && npm run android:adb:reverse && cap run android",
+    "android:run:lan": "npm run android:env:lan && npm run android:sync:lan && cap run android",
     "android:open": "cap open android",
     "android:build": "npm run android:sync && cd android && gradlew assembleDebug"
   },
