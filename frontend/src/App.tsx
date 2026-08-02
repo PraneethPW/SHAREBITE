@@ -271,6 +271,20 @@ function ShareBiteApp() {
     }
   }
 
+  async function rateDonor(id: string, rating: number) {
+    try {
+      const { data } = await api.post(`/claims/${id}/rating`, { rating }, { headers: authHeaders });
+      setNotice({ tone: "success", title: "Rating submitted", body: data.message || "Thank you for sharing your experience." });
+      await refresh();
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        title: "Rating was not submitted",
+        body: axios.isAxiosError(error) ? error.response?.data?.message || "Please try again." : "Please try again."
+      });
+    }
+  }
+
   async function estimate(target?: Donation | Claim) {
     const sample = target || donations.find((item) => item.id === selectedDonationId) || donations[0] || claims[0];
     if ("donation_id" in (sample || {})) {
@@ -374,6 +388,7 @@ function ShareBiteApp() {
         onClaimFood={claimFood}
         onReviewClaim={reviewClaim}
         onVerifyClaimCode={verifyClaimCode}
+        onRateDonor={rateDonor}
         selectedClaimId={selectedClaimId}
         setSelectedClaimId={setSelectedClaimId}
         activeAiPlan={activeAiPlan}

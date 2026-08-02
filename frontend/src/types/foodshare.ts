@@ -16,6 +16,8 @@ export type Donation = {
   expires_at: string;
   status: string;
   donor_name: string;
+  donor_average_rating?: number;
+  donor_rating_count?: number;
 };
 
 export type AiPlan = {
@@ -62,6 +64,7 @@ export type Claim = {
   donor_name: string;
   receiver_name: string;
   receiver_location: string;
+  my_rating?: number;
 };
 
 export const demoCredentials: Record<Role, { email: string; password: string; label: string }> = {

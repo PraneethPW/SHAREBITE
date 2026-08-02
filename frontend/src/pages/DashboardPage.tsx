@@ -23,6 +23,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Star,
   Tag,
   Truck,
   UserRound,
@@ -67,6 +68,7 @@ export type DashboardPageProps = {
   onClaimFood: (id: string) => void;
   onReviewClaim: (id: string, decision: "approve" | "reject") => void;
   onVerifyClaimCode: (id: string, code: string) => void;
+  onRateDonor: (id: string, rating: number) => void;
   selectedClaimId: string;
   setSelectedClaimId: (id: string) => void;
   activeAiPlan: AiPlan | null;
@@ -106,6 +108,7 @@ export function DashboardPage(p: DashboardPageProps) {
     onClaimFood,
     onReviewClaim,
     onVerifyClaimCode,
+    onRateDonor,
     selectedClaimId,
     setSelectedClaimId,
     activeAiPlan,
@@ -581,6 +584,10 @@ export function DashboardPage(p: DashboardPageProps) {
                         <p className="relative mt-3 flex min-w-0 items-center gap-2 text-sm text-slate-600">
                           <Building2 className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{item.donor_name}</span>
                         </p>
+                        <p className="relative flex items-center gap-1.5 text-sm font-bold text-amber-700">
+                          <Star className="size-4 fill-amber-400 text-amber-500" />
+                          {item.donor_rating_count ? `${Number(item.donor_average_rating || 0).toFixed(1)} · ${item.donor_rating_count} ${item.donor_rating_count === 1 ? "rating" : "ratings"}` : "New donor"}
+                        </p>
                         <p className="relative flex min-w-0 items-center gap-2 text-sm text-slate-600">
                           <MapPin className="size-4 shrink-0 text-slate-400" /> <span className="min-w-0 break-words">{item.location}</span>
                         </p>
@@ -617,6 +624,7 @@ export function DashboardPage(p: DashboardPageProps) {
                   selectedClaimId={selectedClaimId}
                   onSelectClaim={(claim) => setSelectedClaimId(claim.id)}
                   onVerifyCode={onVerifyClaimCode}
+                  onRateDonor={onRateDonor}
                 />
               </>
             )}

@@ -1,4 +1,4 @@
-import { Building2, CheckCircle2, MapPin, Navigation } from "lucide-react";
+import { Building2, CheckCircle2, MapPin, Navigation, Star } from "lucide-react";
 import { cn } from "../../cn";
 import type { Claim } from "../../types/foodshare";
 
@@ -13,12 +13,14 @@ export function ClaimBoard({
   claims,
   selectedClaimId,
   onSelectClaim,
-  onVerifyCode
+  onVerifyCode,
+  onRateDonor
 }: {
   claims: Claim[];
   selectedClaimId: string;
   onSelectClaim: (claim: Claim) => void;
   onVerifyCode: (id: string, code: string) => void;
+  onRateDonor: (id: string, rating: number) => void;
 }) {
   if (!claims.length) {
     return (
@@ -110,6 +112,24 @@ export function ClaimBoard({
                     Verify code
                   </button>
                 </form>
+              )}
+              {claim.status === "completed" && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
+                  {claim.my_rating ? (
+                    <p className="flex items-center gap-2 text-sm font-bold text-amber-900"><Star className="size-4 fill-amber-400 text-amber-500" /> You rated this donor {claim.my_rating}/5.</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-amber-950">How was your pickup from {claim.donor_name}?</p>
+                      <div className="mt-2 flex gap-1" aria-label="Rate donor from 1 to 5 stars">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button key={rating} type="button" onClick={() => onRateDonor(claim.id, rating)} className="rounded-lg p-1 text-amber-500 transition hover:scale-110 hover:bg-amber-100" aria-label={`Rate ${rating} stars`}>
+                            <Star className="size-6" />
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
               <p className="mt-3 flex min-w-0 items-start gap-2 break-words text-sm font-semibold text-slate-700">
                 <Navigation className="mt-0.5 size-4 shrink-0 text-brand-600" /> {plan.bestRoute}

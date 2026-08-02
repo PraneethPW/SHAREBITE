@@ -29,6 +29,14 @@ async function ensureRuntimeSchema() {
     ALTER TABLE claims ADD COLUMN IF NOT EXISTS approval_code TEXT;
     ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
     ALTER TABLE claims ADD CONSTRAINT claims_status_check CHECK (status IN ('pending', 'approved', 'rejected', 'completed'));
+    CREATE TABLE IF NOT EXISTS donor_ratings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      claim_id UUID NOT NULL UNIQUE REFERENCES claims(id) ON DELETE CASCADE,
+      donor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
   `);
 }
 
@@ -141,9 +149,16 @@ app.get("/donations", auth, async (req, res) => {
         : "(d.status='available' AND d.expires_at > now()) OR d.donor_id=$1";
   const params = scope === "available" ? [] : [req.user!.id];
   const result = await query<any>(
-    `SELECT d.*, u.name AS donor_name
+    `SELECT d.*, u.name AS donor_name,
+       COALESCE(ratings.average_rating, 0)::float AS donor_average_rating,
+       COALESCE(ratings.rating_count, 0)::int AS donor_rating_count
      FROM donations d
      JOIN users u ON u.id=d.donor_id
+     LEFT JOIN (
+       SELECT donor_id, AVG(rating) AS average_rating, COUNT(*) AS rating_count
+       FROM donor_ratings
+       GROUP BY donor_id
+     ) ratings ON ratings.donor_id=d.donor_id
      WHERE ${scopedWhere}
      ORDER BY d.created_at DESC`,
     params
@@ -174,11 +189,13 @@ app.get("/claims", auth, async (req, res) => {
       d.status AS donation_status,
       donor.name AS donor_name,
       receiver.name AS receiver_name,
-      receiver.location AS receiver_location
+      receiver.location AS receiver_location,
+      rating.rating AS my_rating
      FROM claims c
      JOIN donations d ON d.id=c.donation_id
      JOIN users donor ON donor.id=d.donor_id
      JOIN users receiver ON receiver.id=c.receiver_id
+     LEFT JOIN donor_ratings rating ON rating.claim_id=c.id
      WHERE ${where}
      ORDER BY c.created_at DESC`,
     params
@@ -342,6 +359,30 @@ app.post("/claims/:id/verify-code", auth, async (req, res) => {
   }
 
   res.json({ claim: result.rows[0], message: "Code verified. Food successfully claimed." });
+});
+
+app.post("/claims/:id/rating", auth, async (req, res) => {
+  if (req.user!.role !== "receiver") return res.status(403).json({ message: "Only receivers can rate a donor" });
+  const body = z.object({ rating: z.number().int().min(1).max(5) }).parse(req.body);
+
+  const result = await query<any>(
+    `INSERT INTO donor_ratings (claim_id, donor_id, receiver_id, rating)
+     SELECT c.id, d.donor_id, c.receiver_id, $3
+     FROM claims c
+     JOIN donations d ON d.id=c.donation_id
+     WHERE c.id=$1 AND c.receiver_id=$2 AND c.status='completed'
+     ON CONFLICT (claim_id) DO NOTHING
+     RETURNING rating`,
+    [req.params.id, req.user!.id, body.rating]
+  );
+
+  if (!result.rowCount) {
+    const existing = await query<any>("SELECT rating FROM donor_ratings WHERE claim_id=$1 AND receiver_id=$2", [req.params.id, req.user!.id]);
+    if (existing.rowCount) return res.status(409).json({ message: "You have already rated this completed pickup." });
+    return res.status(400).json({ message: "You can rate the donor after this pickup is completed." });
+  }
+
+  res.status(201).json({ rating: result.rows[0].rating, message: "Thank you for rating this donor." });
 });
 
 app.post("/ai/estimate", auth, async (req, res) => {

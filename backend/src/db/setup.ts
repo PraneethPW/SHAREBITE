@@ -41,6 +41,15 @@ async function setup() {
       created_at TIMESTAMPTZ DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS donor_ratings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      claim_id UUID NOT NULL UNIQUE REFERENCES claims(id) ON DELETE CASCADE,
+      donor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+
     ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
     ALTER TABLE claims ADD COLUMN IF NOT EXISTS approval_code TEXT;
     ALTER TABLE claims DROP CONSTRAINT IF EXISTS claims_status_check;
